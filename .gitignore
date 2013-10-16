@@ -1,0 +1,17 @@
+.*.swp
+*.o
+*.log
+dump.rdb
+narc
+doc-tools
+release
+misc/*
+src/release.h
+appendonly.aof
+SHORT_TERM_TODO
+release.h
+narc.ds
+src/narc.conf
+.make-*
+.prerequisites
+*.dSYM
