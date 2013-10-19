@@ -1,0 +1,6 @@
+[submodule "deps/libuv"]
+	path = deps/libuv
+	url = git@github.com:joyent/libuv.git
+[submodule "deps/jemalloc"]
+	path = deps/jemalloc
+	url = git@github.com:jemalloc/jemalloc.git
