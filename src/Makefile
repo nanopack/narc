@@ -104,13 +104,9 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 NARC_NAME=narc
-# NARC_OBJ=adlist.o dict.o narc.o sds.o zmalloc.o util.o sha1.o release.o config.o debug.o intset.o crc16.o endianconv.o crc64.o setproctitle.o
-NARC_OBJ=narc.o release.o crc64.o
+NARC_OBJ=adlist.o config.o crc16.o crc64.o debug.o dict.o endianconv.o intset.o narc.o release.o sds.o setproctitle.o sha1.o util.o zmalloc.o
 
 all: $(NARC_NAME)
-	@echo ""
-	@echo "Hint: To run 'make test' is a good idea ;)"
-	@echo ""
 
 .PHONY: all
 
@@ -171,8 +167,8 @@ distclean: clean
 
 .PHONY: distclean
 
-test: $(NARC_NAME)
-	@(cd ..; ./runtest)
+# test: $(NARC_NAME)
+# 	@(cd ..; ./runtest)
 
 check: test
 

@@ -24,32 +24,24 @@
  * Copyright 2013 Pagoda Box, Inc.  All rights reserved.
  */
 
-/* Every time the Narc Git SHA1 or Dirty status changes only this small 
- * file is recompiled, as we access this information in all the other
- * files using this functions. */
+#ifndef NARC_CONFIG_H
+#define NARC_CONFIG_H
 
-#include <string.h>
+/* Check if we can use setproctitle().
+ * BSD systems have support for it, we provide an implementation for
+ * Linux and osx. */
+#if (defined __NetBSD__ || defined __FreeBSD__ || defined __OpenBSD__)
+#define USE_SETPROCTITLE
+#endif
 
-#include "release.h"
-#include "version.h"
-#include "crc64.h"
+#if (defined __linux || defined __APPLE__)
+#define USE_SETPROCTITLE
+#define INIT_SETPROCTITLE_REPLACEMENT
+void	spt_init(int argc, char *argv[]);
+void	setproctitle(const char *fmt, ...);
+#endif
 
-char
-*narcGitSHA1(void)
-{
-  return NARC_GIT_SHA1;
-}
+// hooky_config_t	*config_new(char *path);
+// void		config_free(hooky_config_t *config);
 
-char
-*narcGitDirty(void)
-{
-  return NARC_GIT_DIRTY;
-}
-
-uint64_t
-narcBuildId(void)
-{
-  char *buildid = NARC_VERSION NARC_BUILD_ID NARC_GIT_DIRTY NARC_GIT_SHA1;
-
-  return crc64(0,(unsigned char*)buildid,strlen(buildid));
-}
+#endif

@@ -24,32 +24,36 @@
  * Copyright 2013 Pagoda Box, Inc.  All rights reserved.
  */
 
-/* Every time the Narc Git SHA1 or Dirty status changes only this small 
- * file is recompiled, as we access this information in all the other
- * files using this functions. */
+#include "narc.h"
 
-#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <syslog.h>	/* definitions for system error logging */
+ 
+static struct {
+	const char     *name;
+	const int       value;
+} validSyslogFacilities[] = {
+	{"user",    LOG_USER},
+	{"local0",  LOG_LOCAL0},
+	{"local1",  LOG_LOCAL1},
+	{"local2",  LOG_LOCAL2},
+	{"local3",  LOG_LOCAL3},
+	{"local4",  LOG_LOCAL4},
+	{"local5",  LOG_LOCAL5},
+	{"local6",  LOG_LOCAL6},
+	{"local7",  LOG_LOCAL7},
+	{NULL, 0}
+};
 
-#include "release.h"
-#include "version.h"
-#include "crc64.h"
+/*-----------------------------------------------------------------------------
+ * Config file parsing
+ *----------------------------------------------------------------------------*/
 
-char
-*narcGitSHA1(void)
+int
+yesnotoi(char *s)
 {
-  return NARC_GIT_SHA1;
-}
-
-char
-*narcGitDirty(void)
-{
-  return NARC_GIT_DIRTY;
-}
-
-uint64_t
-narcBuildId(void)
-{
-  char *buildid = NARC_VERSION NARC_BUILD_ID NARC_GIT_DIRTY NARC_GIT_SHA1;
-
-  return crc64(0,(unsigned char*)buildid,strlen(buildid));
+	if (!strcasecmp(s,"yes")) return 1;
+	else if (!strcasecmp(s,"no")) return 0;
+	else return -1;
 }

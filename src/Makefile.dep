@@ -1,6 +1,27 @@
-crc64.o: crc64.c
-narc.o: narc.c narc.h ../deps/libuv/include/uv.h \
+adlist.o: adlist.c adlist.h zmalloc.h
+config.o: config.c narc.h fmacros.h config.h ../deps/libuv/include/uv.h \
   ../deps/libuv/include/uv-private/uv-unix.h \
   ../deps/libuv/include/uv-private/ngx-queue.h \
-  ../deps/libuv/include/uv-private/uv-darwin.h
+  ../deps/libuv/include/uv-private/uv-darwin.h sds.h dict.h adlist.h \
+  zmalloc.h intset.h version.h util.h
+crc16.o: crc16.c
+crc64.o: crc64.c
+debug.o: debug.c narc.h fmacros.h config.h ../deps/libuv/include/uv.h \
+  ../deps/libuv/include/uv-private/uv-unix.h \
+  ../deps/libuv/include/uv-private/ngx-queue.h \
+  ../deps/libuv/include/uv-private/uv-darwin.h sds.h dict.h adlist.h \
+  zmalloc.h intset.h version.h util.h sha1.h crc64.h
+dict.o: dict.c fmacros.h dict.h zmalloc.h narcassert.h
+endianconv.o: endianconv.c
+intset.o: intset.c intset.h zmalloc.h endianconv.h config.h
+narc.o: narc.c narc.h fmacros.h config.h ../deps/libuv/include/uv.h \
+  ../deps/libuv/include/uv-private/uv-unix.h \
+  ../deps/libuv/include/uv-private/ngx-queue.h \
+  ../deps/libuv/include/uv-private/uv-darwin.h sds.h dict.h adlist.h \
+  zmalloc.h intset.h version.h util.h
 release.o: release.c release.h version.h crc64.h
+sds.o: sds.c sds.h zmalloc.h
+setproctitle.o: setproctitle.c
+sha1.o: sha1.c sha1.h config.h
+util.o: util.c fmacros.h util.h sds.h
+zmalloc.o: zmalloc.c config.h zmalloc.h
