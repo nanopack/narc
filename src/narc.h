@@ -57,12 +57,16 @@
 #define NARC_ERR	-1
 
 /* Static narc configuration */
-#define NARC_DAEMONIZE   	0
-#define NARC_PIDFILE     	"/var/run/narc.pid"
-#define NARC_REMOTE_HOST 	"127.0.0.1"
-#define NARC_REMOTE_PORT 	514
-#define NARC_REMOTE_PROTO	"tcp"
-#define NARC_MAX_LOGMSG_LEN	1024	/* Default maximum length of syslog messages */
+#define NARC_RUN_ID_SIZE		40
+#define NARC_MAX_LOGMSG_LEN		1024	/* Default maximum length of syslog messages */
+#define NARC_DEFAULT_DAEMONIZE   	0
+#define NARC_DEFAULT_PIDFILE     	"/var/run/narc.pid"
+#define NARC_DEFAULT_LOGFILE     	"/var/log/narc.log"
+#define NARC_DEFAULT_SYSLOG_IDENT	"narc"
+#define NARC_DEFAULT_SYSLOG_ENABLED	0
+#define NARC_DEFAULT_HOST 		"127.0.0.1"
+#define NARC_DEFAULT_PORT 		514
+#define NARC_DEFAULT_PROTO		"tcp"
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -91,7 +95,9 @@
 struct narcServer {
 	/* General */
 	char		*configfile;			/* Absolute config file path, or NULL */
+	char		runid[NARC_RUN_ID_SIZE+1];	/* ID always different at every exec. */
 	char		*pidfile;			/* PID file path */
+	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
 	dict		*streams;			/* Stream table */
 	uv_loop_t	*loop;				/* Event loop */
 	/* Networking */
@@ -106,8 +112,6 @@ struct narcServer {
 	int		syslog_enabled;			/* Is syslog enabled? */
 	char		*syslog_ident;			/* Syslog ident */
 	int		syslog_facility;		/* Syslog facility */
-	/* Limits */
-	unsigned long long	maxmemory;		/* Max number of memory bytes to use */
 };
 
 /*-----------------------------------------------------------------------------
@@ -119,13 +123,34 @@ extern struct narcServer	server;
 /*-----------------------------------------------------------------------------
  * Functions prototypes
  *----------------------------------------------------------------------------*/
+/* Utils */
+void		getRandomHexChars(char *p, unsigned int len);
 
 /* Core functions */
 #ifdef __GNUC__
-void	narcLog(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void		narcLog(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #else
-void	narcLog(int level, const char *fmt, ...);
+void		narcLog(int level, const char *fmt, ...);
 #endif
-void	narcLogRaw(int level, const char *msg);
+void		narcLogRaw(int level, const char *msg);
+void		narcOutOfMemoryHandler(size_t allocation_size);
+int		main(int argc, char **argv);
+
+/* Git SHA1 */
+char		*narcGitSHA1(void);
+char		*narcGitDirty(void);
+uint64_t	narcBuildId(void);
+
+#if defined(__GNUC__)
+void		*calloc(size_t count, size_t size) __attribute__ ((deprecated));
+void		free(void *ptr) __attribute__ ((deprecated));
+void		*malloc(size_t size) __attribute__ ((deprecated));
+void		*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
+#endif
+
+/* Debugging stuff */
+void		_narcAssert(char *estr, char *file, int line);
+void		_narcPanic(char *msg, char *file, int line);
+
 
 #endif

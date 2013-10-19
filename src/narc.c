@@ -30,6 +30,7 @@
 #include <syslog.h>	/* definitions for system error logging */
 #include <sys/time.h>	/* time types */
 #include <unistd.h>	/* standard symbolic constants and types */
+#include <locale.h>	/* set program locale */
 
 /*================================= Globals ================================= */
 
@@ -91,10 +92,121 @@ narcLog(int level, const char *fmt, ...)
 	narcLogRaw(level,msg);
 }
 
+/*====================== Hash table type implementation  ==================== */
+
+/* This is an hash table type that uses the SDS dynamic strings library as
+ * keys and redis objects as values (objects can hold SDS strings,
+ * lists, sets). */
+
+void
+dictVanillaFree(void *privdata, void *val)
+{
+	DICT_NOTUSED(privdata);
+	zfree(val);
+}
+
+void
+dictListDestructor(void *privdata, void *val)
+{
+	DICT_NOTUSED(privdata);
+	listRelease((list*)val);
+}
+
+int
+dictSdsKeyCompare(void *privdata, const void *key1, const void *key2)
+{
+	int l1,l2;
+	DICT_NOTUSED(privdata);
+
+	l1 = sdslen((sds)key1);
+	l2 = sdslen((sds)key2);
+	if (l1 != l2) return 0;
+	return memcmp(key1, key2, l1) == 0;
+}
+
+/* A case insensitive version used for the command lookup table and other
+ * places where case insensitive non binary-safe comparison is needed. */
+int dictSdsKeyCaseCompare(void *privdata, const void *key1, const void *key2)
+{
+	DICT_NOTUSED(privdata);
+
+	return strcasecmp(key1, key2) == 0;
+}
+
+void
+dictSdsDestructor(void *privdata, void *val)
+{
+	DICT_NOTUSED(privdata);
+
+	sdsfree(val);
+}
+
+unsigned int
+dictSdsCaseHash(const void *key)
+{
+	return dictGenCaseHashFunction((unsigned char*)key, sdslen((char*)key));
+}
+
+/* Stream table. sds string -> stream struct pointer. */
+dictType streamTableDictType = {
+	dictSdsCaseHash,	/* hash function */
+	NULL,			/* key dup */
+	NULL,			/* val dup */
+	dictSdsKeyCaseCompare,	/* key compare */
+	dictSdsDestructor,	/* key destructor */
+	NULL			/* val destructor */
+};
+
+/*=========================== Server initialization ========================= */
+
+void
+initServerConfig(void)
+{
+	getRandomHexChars(server.runid, NARC_RUN_ID_SIZE);
+	server.configfile = NULL;
+	server.runid[NARC_RUN_ID_SIZE] = '\0';
+	server.pidfile = zstrdup(NARC_DEFAULT_PIDFILE);
+	server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
+	server.host = zstrdup(NARC_DEFAULT_HOST);
+	server.port = NARC_DEFAULT_PORT;
+	server.protocol = zstrdup(NARC_DEFAULT_PROTO);
+	server.verbosity = NARC_DEFAULT_VERBOSITY;
+	server.daemonize = NARC_DEFAULT_DAEMONIZE;
+	server.logfile = zstrdup(NARC_DEFAULT_LOGFILE);
+	server.syslog_enabled = NARC_DEFAULT_SYSLOG_ENABLED;
+	server.syslog_ident = zstrdup(NARC_DEFAULT_SYSLOG_IDENT);
+	server.syslog_facility = LOG_LOCAL0;
+
+	/* streams table -- we initiialize it here as it is part of the
+	 * initial configuration */
+	server.streams = dictCreate(&streamTableDictType, NULL);
+}
+
 /* =================================== Main! ================================ */
+
+void
+narcOutOfMemoryHandler(size_t allocation_size)
+{
+	narcLog(NARC_WARNING, "Out Of Memory allocating %zu bytes!", allocation_size);
+	narcPanic("Hooky aborting for OUT OF MEMORY");
+}
 
 int
 main(int argc, char **argv)
 {
+	struct timeval tv;
+
+	setlocale(LC_COLLATE,"");
+	zmalloc_enable_thread_safeness();
+	zmalloc_set_oom_handler(narcOutOfMemoryHandler);
+	srand(time(NULL)^getpid());
+	gettimeofday(&tv,NULL);
+	dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
+	initServerConfig();
 	printf("Hello World\n");
 }
+
+
+
+
+
