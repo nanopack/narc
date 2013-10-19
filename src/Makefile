@@ -104,7 +104,8 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 NARC_NAME=narc
-NARC_OBJ=adlist.o dict.o narc.o sds.o zmalloc.o util.o sha1.o release.o config.o debug.o intset.o crc16.o endianconv.o crc64.o setproctitle.o
+# NARC_OBJ=adlist.o dict.o narc.o sds.o zmalloc.o util.o sha1.o release.o config.o debug.o intset.o crc16.o endianconv.o crc64.o setproctitle.o
+NARC_OBJ=narc.o release.o crc64.o
 
 all: $(NARC_NAME)
 	@echo ""
@@ -151,7 +152,7 @@ endif
 
 # narc-server
 $(NARC_NAME): $(NARC_OBJ)
-	$(NARC_LD) -o $@ $^ ../deps/libuv/libuv.a ../deps/msgpack-c/src/.libs/libmsgpack.a $(FINAL_LIBS)
+	$(NARC_LD) -o $@ $^ ../deps/libuv/libuv.a $(FINAL_LIBS)
 
 # Because the jemalloc.h header is generated as a part of the jemalloc build,
 # building it should complete before building any other object. Instead of

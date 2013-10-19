@@ -1,0 +1,6 @@
+crc64.o: crc64.c
+narc.o: narc.c narc.h ../deps/libuv/include/uv.h \
+  ../deps/libuv/include/uv-private/uv-unix.h \
+  ../deps/libuv/include/uv-private/ngx-queue.h \
+  ../deps/libuv/include/uv-private/uv-darwin.h
+release.o: release.c release.h version.h crc64.h
