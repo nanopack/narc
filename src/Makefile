@@ -61,7 +61,7 @@ ifeq ($(uname_S),SunOS)
 	FINAL_CFLAGS+= -D__EXTENSIONS__ -D_XPG6
 	FINAL_LIBS+= -ldl -lnsl -lsocket -lpthread -lkstat -lsendfile
 else ifeq ($(uname_S),Darwin)
-	
+	FINAL_LDFLAGS+= -framework CoreFoundation -framework CoreServices
 else
 	FINAL_LDFLAGS+= -rdynamic
 	FINAL_LIBS+= -pthread
@@ -104,7 +104,7 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 NARC_NAME=narc
-NARC_OBJ=adlist.o config.o crc16.o crc64.o debug.o dict.o endianconv.o intset.o narc.o release.o sds.o setproctitle.o sha1.o util.o zmalloc.o
+NARC_OBJ=adlist.o config.o crc16.o crc64.o debug.o endianconv.o narc.o release.o sds.o setproctitle.o sha1.o util.o zmalloc.o
 
 all: $(NARC_NAME)
 

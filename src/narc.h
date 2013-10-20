@@ -26,29 +26,15 @@
 #ifndef NARC_H
 #define NARC_H 
 
-// #include "fmacros.h"
-// #include "config.h"
-
 #if defined(__sun)
 #include "solarisfixes.h"
 #endif
 
-// #include <string.h>	/* string operations */
-// #include <time.h>	/* time types */
-// #include <limits.h>	/* implementation-defined constants */
-// #include <errno.h>	/* system error numbers */
-// #include <inttypes.h>	/* fixed size integer types */
-// #include <pthread.h>	/* threads */
-// #include <netinet/in.h>	/* Internet Protocol family */
-// #include <signal.h>	/* signals */
-
 #include <uv.h>		/* Event driven programming library */
 
 #include "sds.h"	/* Dynamic safe strings */
-#include "dict.h"	/* Hash tables */
 #include "adlist.h"	/* Linked lists */
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
-#include "intset.h"	/* Compact integer set structure */
 #include "version.h"	/* Version macro */
 #include "util.h"	/* Misc functions useful in many places */
 
@@ -58,7 +44,6 @@
 
 /* Static narc configuration */
 #define NARC_CONFIGLINE_MAX		1024
-#define NARC_RUN_ID_SIZE		40
 #define NARC_MAX_LOGMSG_LEN		1024	/* Default maximum length of syslog messages */
 #define NARC_DEFAULT_DAEMONIZE   	0
 #define NARC_DEFAULT_PIDFILE     	"/var/run/narc.pid"
@@ -91,6 +76,11 @@
  * Data types
  *----------------------------------------------------------------------------*/
 
+typedef struct narcStream {
+	char *id;
+	char *file;
+} narcStream;
+
 /*-----------------------------------------------------------------------------
  * Global state
  *----------------------------------------------------------------------------*/
@@ -98,10 +88,9 @@
 struct narcServer {
 	/* General */
 	char		*configfile;			/* Absolute config file path, or NULL */
-	char		runid[NARC_RUN_ID_SIZE+1];	/* ID always different at every exec. */
 	char		*pidfile;			/* PID file path */
 	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
-	dict		*streams;			/* Stream table */
+	list		*streams;			/* Stream list */
 	uv_loop_t	*loop;				/* Event loop */
 	char 		*identifier; 			/* prefix all messages */
 	/* Networking */
@@ -127,9 +116,6 @@ extern struct narcServer	server;
 /*-----------------------------------------------------------------------------
  * Functions prototypes
  *----------------------------------------------------------------------------*/
-/* Utils */
-void		getRandomHexChars(char *p, unsigned int len);
-
 /* Core functions */
 #ifdef __GNUC__
 void		narcLog(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
@@ -139,15 +125,18 @@ void		narcLog(int level, const char *fmt, ...);
 void		narcLogRaw(int level, const char *msg);
 void		narcOutOfMemoryHandler(size_t allocation_size);
 int		main(int argc, char **argv);
-
-/* Configuration */
 void		loadServerConfig(char *filename, char *options);
+void		initServerConfig(void);
+void		initServer(void);
+void		init_stream(narcStream *stream);
+void		file_change(uv_fs_event_t *handle, const char *filename, int events, int status);
 
 /* Git SHA1 */
 char		*narcGitSHA1(void);
 char		*narcGitDirty(void);
 uint64_t	narcBuildId(void);
 
+/* Deprecated */
 #if defined(__GNUC__)
 void		*calloc(size_t count, size_t size) __attribute__ ((deprecated));
 void		free(void *ptr) __attribute__ ((deprecated));
@@ -158,6 +147,5 @@ void		*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
 /* Debugging stuff */
 void		_narcAssert(char *estr, char *file, int line);
 void		_narcPanic(char *msg, char *file, int line);
-
 
 #endif

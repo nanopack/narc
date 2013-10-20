@@ -169,6 +169,11 @@ loadServerConfigFromString(char *config)
 		} else if (!strcasecmp(argv[0], "identifier") && argc == 2) {
 			zfree(server.identifier);
 			server.identifier = zstrdup(argv[1]);
+		} else if (!strcasecmp(argv[0],"stream") && argc == 3) {
+			narcStream *stream = zmalloc(sizeof(narcStream));
+			stream->id = (char *)sdsdup(argv[1]);
+			stream->file = (char *)sdsdup(argv[2]);
+			listAddNodeTail(server.streams, (void *)stream);
 		} else {
 			err = "Bad directive or wrong number of arguments"; goto loaderr;
 		}
