@@ -140,6 +140,9 @@ void		narcLogRaw(int level, const char *msg);
 void		narcOutOfMemoryHandler(size_t allocation_size);
 int		main(int argc, char **argv);
 
+/* Configuration */
+void		loadServerConfig(char *filename, char *options);
+
 /* Git SHA1 */
 char		*narcGitSHA1(void);
 char		*narcGitDirty(void);

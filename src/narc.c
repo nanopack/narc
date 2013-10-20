@@ -294,7 +294,7 @@ main(int argc, char **argv)
 			}
 			j++;
 		}
-		// loadServerConfig(configfile, options);
+		loadServerConfig(configfile, options);
 		sdsfree(options);
 		if (configfile)
 			server.configfile = getAbsolutePath(configfile);
