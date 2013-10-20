@@ -57,16 +57,18 @@
 #define NARC_ERR	-1
 
 /* Static narc configuration */
+#define NARC_CONFIGLINE_MAX		1024
 #define NARC_RUN_ID_SIZE		40
 #define NARC_MAX_LOGMSG_LEN		1024	/* Default maximum length of syslog messages */
 #define NARC_DEFAULT_DAEMONIZE   	0
 #define NARC_DEFAULT_PIDFILE     	"/var/run/narc.pid"
-#define NARC_DEFAULT_LOGFILE     	"/var/log/narc.log"
+#define NARC_DEFAULT_LOGFILE     	""
 #define NARC_DEFAULT_SYSLOG_IDENT	"narc"
 #define NARC_DEFAULT_SYSLOG_ENABLED	0
 #define NARC_DEFAULT_HOST 		"127.0.0.1"
 #define NARC_DEFAULT_PORT 		514
 #define NARC_DEFAULT_PROTO		"tcp"
+#define NARC_DEFAULT_IDENTIFIER		""
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -74,7 +76,8 @@
 #define NARC_NOTICE		2
 #define NARC_WARNING		3
 #define NARC_LOG_RAW		(1<<10)	/* Modifier to log without timestamp */
-#define NARC_DEFAULT_VERBOSITY	NARC_NOTICE
+// #define NARC_DEFAULT_VERBOSITY	NARC_NOTICE
+#define NARC_DEFAULT_VERBOSITY	NARC_DEBUG
 
 /* Anti-warning macro... */
 #define NARC_NOTUSED(V)	((void) V)
@@ -100,6 +103,7 @@ struct narcServer {
 	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
 	dict		*streams;			/* Stream table */
 	uv_loop_t	*loop;				/* Event loop */
+	char 		*identifier; 			/* prefix all messages */
 	/* Networking */
 	char		*host; 				/* Remote syslog host */
 	int 		port; 				/* Remote syslog port */

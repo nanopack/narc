@@ -170,6 +170,7 @@ initServerConfig(void)
 	server.host = zstrdup(NARC_DEFAULT_HOST);
 	server.port = NARC_DEFAULT_PORT;
 	server.protocol = zstrdup(NARC_DEFAULT_PROTO);
+	server.identifier = zstrdup(NARC_DEFAULT_IDENTIFIER);
 	server.verbosity = NARC_DEFAULT_VERBOSITY;
 	server.daemonize = NARC_DEFAULT_DAEMONIZE;
 	server.logfile = zstrdup(NARC_DEFAULT_LOGFILE);
@@ -183,6 +184,64 @@ initServerConfig(void)
 }
 
 /* =================================== Main! ================================ */
+
+void
+createPidFile(void)
+{
+	/* Try to write the pid file in a best-effort way. */
+	FILE *fp = fopen(server.pidfile,"w");
+	if (fp) {
+		fprintf(fp,"%d\n",(int)getpid());
+		fclose(fp);
+	}
+}
+
+void
+daemonize(void)
+{
+	int fd;
+
+	if (fork() != 0) exit(0); /* parent exits */
+	setsid(); /* create a new session */
+
+	/* Every output goes to /dev/null. If Hooky is daemonized but
+	* the 'logfile' is set to 'stdout' in the configuration file
+	* it will not log at all. */
+	if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+		dup2(fd, STDIN_FILENO);
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+		if (fd > STDERR_FILENO) close(fd);
+	}
+}
+
+void
+version(void)
+{
+	printf("Narc v=%s sha=%s:%d malloc=%s bits=%d build=%llx\n",
+		NARC_VERSION,
+		narcGitSHA1(),
+		atoi(narcGitDirty()) > 0,
+		ZMALLOC_LIB,
+		sizeof(long) == 4 ? 32 : 64,
+		(unsigned long long) narcBuildId());
+	exit(0);
+}
+
+void
+usage(void)
+{
+	fprintf(stderr,"Usage: ./narc [/path/to/narc.conf] [options]\n");
+	fprintf(stderr,"       ./narc - (read config from stdin)\n");
+	fprintf(stderr,"       ./narc -v or --version\n");
+	fprintf(stderr,"       ./narc -h or --help\n\n");
+	fprintf(stderr,"Examples:\n");
+	fprintf(stderr,"       ./narc (run the server with default conf)\n");
+	fprintf(stderr,"       ./narc /etc/narc.conf\n");
+	fprintf(stderr,"       ./narc --port 7777\n");
+	fprintf(stderr,"       ./narc /etc/mynarc.conf --loglevel verbose\n\n");
+	exit(1);
+}
 
 void
 narcOutOfMemoryHandler(size_t allocation_size)
@@ -203,10 +262,43 @@ main(int argc, char **argv)
 	gettimeofday(&tv,NULL);
 	dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
 	initServerConfig();
-	printf("Hello World\n");
+
+	if (argc >= 2) {
+		int j = 1; /* First option to parse in argv[] */
+		sds options = sdsempty();
+		char *configfile = NULL;
+
+		/* Handle special options --help and --version */
+		if (strcmp(argv[1], "-v") == 0 ||
+			strcmp(argv[1], "--version") == 0) version();
+		if (strcmp(argv[1], "--help") == 0 ||
+			strcmp(argv[1], "-h") == 0) usage();
+
+		/* First argument is the config file name? */
+		if (argv[j][0] != '-' || argv[j][1] != '-')
+			configfile = argv[j++];
+		/* All the other options are parsed and conceptually appended to the
+		* configuration file. For instance --port 6380 will generate the
+		* string "port 6380\n" to be parsed after the actual file name
+		* is parsed, if any. */
+		while(j != argc) {
+			if (argv[j][0] == '-' && argv[j][1] == '-') {
+			/* Option name */
+			if (sdslen(options)) options = sdscat(options,"\n");
+				options = sdscat(options,argv[j]+2);
+				options = sdscat(options," ");
+			} else {
+				/* Option argument */
+				options = sdscatrepr(options,argv[j],strlen(argv[j]));
+				options = sdscat(options," ");
+			}
+			j++;
+		}
+		// loadServerConfig(configfile, options);
+		sdsfree(options);
+		if (configfile)
+			server.configfile = getAbsolutePath(configfile);
+	} else {
+		narcLog(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
+	}
 }
-
-
-
-
-

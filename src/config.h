@@ -41,7 +41,4 @@ void	spt_init(int argc, char *argv[]);
 void	setproctitle(const char *fmt, ...);
 #endif
 
-// hooky_config_t	*config_new(char *path);
-// void		config_free(hooky_config_t *config);
-
 #endif
