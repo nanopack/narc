@@ -116,34 +116,71 @@ initServerConfig(void)
 void
 initServer(void)
 {
-	listIter *iter;
-	listNode *node;
-
 	if (server.syslog_enabled) {
 		openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT, server.syslog_facility);
 	}
 
 	server.loop = uv_default_loop();
 
+	listIter *iter;
+	listNode *node;
+
 	iter = listGetIterator(server.streams, AL_START_HEAD);
 	while ((node = listNext(iter)) != NULL) {
-		init_stream((narcStream *)listNodeValue(node));
+		openFile((narcStream *)listNodeValue(node));
 	}
 }
 
 void
-init_stream(narcStream *stream)
+openFile(narcStream *stream)
 {
-	uv_fs_event_t *event;
-
-	event = (uv_fs_event_t *)zmalloc(sizeof(uv_fs_event_t));
-	if (uv_fs_event_init(server.loop, event, stream->file, file_change, 0) == UV_OK){
-		event->data = (void *)stream;
+	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onOpen) == UV_OK) {
+		req->data = (void *)stream;
 	}
 }
 
+void
+onOpen(uv_fs_t *req)
+{
+	narcStream *stream = req->data;
+
+	if (req->result == -1) {
+		narcLog(NARC_WARNING, "error opening %s: %d\n", stream->file, req->errorno);
+		exit(1);
+	}
+
+	// set the file offset to the end of the file
+	lseek(req->result, 0, SEEK_END);
+
+	uv_fs_t *readReq = zmalloc(sizeof(uv_fs_t));
+	if (uv_fs_read(server.loop, readReq, req->result, stream->buffer, sizeof(stream->buffer), -1, onRead) == UV_OK) {
+		readReq->data = (void *)stream;
+	}
+}
+
+void
+onRead(uv_fs_t *req)
+{
+	narcStream *stream = req->data;
+	
+	printf("onread: %s\n", stream->file);
+	printf("%s", stream->buffer);
+}
+
+// void
+// initStream(narcStream *stream)
+// {
+// 	uv_fs_event_t *event;
+
+// 	event = (uv_fs_event_t *)zmalloc(sizeof(uv_fs_event_t));
+// 	if (uv_fs_event_init(server.loop, event, stream->file, fileChange, 0) == UV_OK){
+// 		event->data = (void *)stream;
+// 	}
+// }
+
 void 
-file_change(uv_fs_event_t *handle, const char *filename, int events, int status) 
+fileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
 {
 	narcStream *stream;
 

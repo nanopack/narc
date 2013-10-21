@@ -43,6 +43,7 @@
 #define NARC_ERR	-1
 
 /* Static narc configuration */
+#define NARC_MAX_BUFF_SIZE 		4096
 #define NARC_CONFIGLINE_MAX		1024
 #define NARC_MAX_LOGMSG_LEN		1024	/* Default maximum length of syslog messages */
 #define NARC_DEFAULT_DAEMONIZE   	0
@@ -79,6 +80,8 @@
 typedef struct narcStream {
 	char *id;
 	char *file;
+	char buffer[NARC_MAX_BUFF_SIZE];
+
 } narcStream;
 
 /*-----------------------------------------------------------------------------
@@ -128,8 +131,10 @@ int		main(int argc, char **argv);
 void		loadServerConfig(char *filename, char *options);
 void		initServerConfig(void);
 void		initServer(void);
-void		init_stream(narcStream *stream);
-void		file_change(uv_fs_event_t *handle, const char *filename, int events, int status);
+void		fileChange(uv_fs_event_t *handle, const char *filename, int events, int status);
+void		openFile(narcStream *stream);
+void 		onOpen(uv_fs_t *req);
+void		onRead(uv_fs_t *req);
 
 /* Git SHA1 */
 char		*narcGitSHA1(void);
