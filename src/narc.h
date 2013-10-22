@@ -78,10 +78,11 @@
  *----------------------------------------------------------------------------*/
 
 typedef struct narcStream {
-	char *id;
-	char *file;
-	char buffer[NARC_MAX_BUFF_SIZE];
-
+	char *id;				/* message id prefix */
+	char *file;				/* absolute path to the file */
+	char buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
+	int fd;					/* file descriptor */
+	uv_statbuf_t *stat;			/* the stat struct */
 } narcStream;
 
 /*-----------------------------------------------------------------------------
@@ -119,22 +120,30 @@ extern struct narcServer	server;
 /*-----------------------------------------------------------------------------
  * Functions prototypes
  *----------------------------------------------------------------------------*/
-/* Core functions */
+/* Core functions and callbacks */
+void		narcOutOfMemoryHandler(size_t allocation_size);
+int		main(int argc, char **argv);
+void		loadServerConfig(char *filename, char *options);
+void		initServerConfig(void);
+void		initServer(void);
+void		openFile(narcStream *stream);
+void		onFileOpen(uv_fs_t *req);
+void		initWatcher(narcStream *stream);
+void		onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status);
+void		statFile(narcStream *stream);
+void		onFileStat(uv_fs_t* req);
+void		readFile(narcStream *stream);
+void		onFileRead(uv_fs_t *req);
+void		initBuffer(char *buffer);
+void		handleMessage(narcStream *stream, char *message);
+
+/* Logging */
 #ifdef __GNUC__
 void		narcLog(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #else
 void		narcLog(int level, const char *fmt, ...);
 #endif
 void		narcLogRaw(int level, const char *msg);
-void		narcOutOfMemoryHandler(size_t allocation_size);
-int		main(int argc, char **argv);
-void		loadServerConfig(char *filename, char *options);
-void		initServerConfig(void);
-void		initServer(void);
-void		fileChange(uv_fs_event_t *handle, const char *filename, int events, int status);
-void		openFile(narcStream *stream);
-void 		onOpen(uv_fs_t *req);
-void		onRead(uv_fs_t *req);
 
 /* Git SHA1 */
 char		*narcGitSHA1(void);

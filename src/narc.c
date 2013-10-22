@@ -135,13 +135,13 @@ void
 openFile(narcStream *stream)
 {
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onOpen) == UV_OK) {
+	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onFileOpen) == UV_OK) {
 		req->data = (void *)stream;
 	}
 }
 
 void
-onOpen(uv_fs_t *req)
+onFileOpen(uv_fs_t *req)
 {
 	narcStream *stream = req->data;
 
@@ -150,43 +150,97 @@ onOpen(uv_fs_t *req)
 		exit(1);
 	}
 
-	// set the file offset to the end of the file
-	lseek(req->result, 0, SEEK_END);
+	stream->stat = NULL;
+	stream->fd = req->result;
 
-	uv_fs_t *readReq = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_read(server.loop, readReq, req->result, stream->buffer, sizeof(stream->buffer), -1, onRead) == UV_OK) {
-		readReq->data = (void *)stream;
+	initWatcher(stream);
+
+	uv_fs_req_cleanup(req);
+	zfree(req);
+}
+
+void
+initWatcher(narcStream *stream)
+{
+	uv_fs_event_t *event = zmalloc(sizeof(uv_fs_event_t));
+	if (uv_fs_event_init(server.loop, event, stream->file, onFileChange, 0) == UV_OK){
+		event->data = (void *)stream;
+	}
+}
+
+void 
+onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
+{
+	if (events == UV_CHANGE)
+		statFile((narcStream *)handle->data);
+}
+
+void
+statFile(narcStream *stream)
+{
+	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	if (uv_fs_stat(server.loop, req, stream->file, onFileStat) == UV_OK) {
+		req->data = (void *)stream;
 	}
 }
 
 void
-onRead(uv_fs_t *req)
+onFileStat(uv_fs_t* req)
 {
 	narcStream *stream = req->data;
-	
-	printf("onread: %s\n", stream->file);
-	printf("%s", stream->buffer);
+	uv_statbuf_t *prevStat = stream->stat;
+	uv_statbuf_t *curStat = req->ptr;
+
+	/* check to see if we're starting, or if a file has been truncated */
+	if (prevStat == NULL || curStat->st_size < prevStat->st_size) {
+		/* set the file offset to the end of the file */
+		lseek(stream->fd, 0, SEEK_END);
+	}
+
+	stream->stat = curStat;
+
+	readFile(stream);
+
+	uv_fs_req_cleanup(req);
+	zfree(req);
 }
 
-// void
-// initStream(narcStream *stream)
-// {
-// 	uv_fs_event_t *event;
-
-// 	event = (uv_fs_event_t *)zmalloc(sizeof(uv_fs_event_t));
-// 	if (uv_fs_event_init(server.loop, event, stream->file, fileChange, 0) == UV_OK){
-// 		event->data = (void *)stream;
-// 	}
-// }
-
-void 
-fileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
+void
+readFile(narcStream *stream)
 {
-	narcStream *stream;
+	initBuffer(stream->buffer);
 
-	stream = (narcStream *)handle->data;
-	if (events == UV_CHANGE)
-		printf("%s changed\n", stream->id);
+	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, sizeof(stream->buffer) -1, -1, onFileRead) == UV_OK) {
+		req->data = (void *)stream;
+	}
+}
+
+void
+onFileRead(uv_fs_t *req)
+{
+	narcStream *stream = req->data;
+
+	if (req->result < 0) {
+		printf("Read error: %s\n", uv_strerror(uv_last_error(uv_default_loop())));
+	} else {
+		printf("%s", stream->buffer);
+	}
+
+	uv_fs_req_cleanup(req);
+	zfree(req);
+}
+
+void
+initBuffer(char *buffer)
+{
+	memset(buffer, '\0', NARC_MAX_BUFF_SIZE);
+}
+
+void
+handleMessage(narcStream *stream, char *message)
+{
+	printf("%s %s", stream->id, message);
 }
 
 /* =================================== Main! ================================ */
