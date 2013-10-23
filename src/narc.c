@@ -144,17 +144,17 @@ onFileOpen(uv_fs_t *req)
 	narcStream *stream = req->data;
 
 	if (req->result == -1) {
-		narcLog(NARC_WARNING, "error opening %s: %d\n", stream->file, req->errorno);
-		exit(1);
+		narcLog(NARC_WARNING, "Error opening %s: errno %d", stream->file, req->errorno);
+		setOpenFileTimer(stream);
+	} else {
+		stream->fd    = req->result;
+		stream->stat  = NULL;
+		stream->index = 0;
+		stream->lock  = NARC_STREAM_UNLOCKED;
+
+		initWatcher(stream);
+		statFile(stream);
 	}
-
-	stream->fd    = req->result;
-	stream->stat  = NULL;
-	stream->index = 0;
-	stream->lock  = NARC_STREAM_UNLOCKED;
-
-	initWatcher(stream);
-	statFile(stream);
 
 	uv_fs_req_cleanup(req);
 	zfree(req);
@@ -170,11 +170,38 @@ initWatcher(narcStream *stream)
 
 /*=========================== Callbacks and core functionality ========================= */
 
+void
+setOpenFileTimer(narcStream *stream)
+{
+
+	uint64_t timeout = 5000; /* 5 seconds */
+
+	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	if (uv_timer_init(server.loop, timer) == UV_OK) {
+		if (uv_timer_start(timer, onOpenFileTimeout, timeout, 0) == UV_OK)
+			timer->data = (void *)stream;
+	}
+}
+
+void
+onOpenFileTimeout(uv_timer_t* timer, int status)
+{
+	openFile((narcStream *)timer->data);
+	zfree(timer);
+}
+
 void 
 onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
 {
+	narcStream *stream = handle->data;
+
 	if (events == UV_CHANGE)
-		statFile((narcStream *)handle->data);
+		statFile(stream);
+	else {
+		narcLog(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
+		openFile(stream);
+		zfree(handle);
+	}
 }
 
 void
@@ -193,11 +220,9 @@ onFileStat(uv_fs_t* req)
 	uv_statbuf_t *curStat  = req->ptr;
 
 	if (prevStat == NULL)
-		/* seek to the end of the file */
 		lseek(stream->fd, 0, SEEK_END);
 
 	else if (curStat->st_size < prevStat->st_size)
-		/* reset to beginning of file */
 		lseek(stream->fd, 0, SEEK_SET);
 
 	stream->stat = curStat;
@@ -232,7 +257,7 @@ onFileRead(uv_fs_t *req)
 		initLine(stream->line);
 
 	if (req->result < 0)
-		narcLog(NARC_WARNING, "Read error (%s): %s\n", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
+		narcLog(NARC_WARNING, "Read error (%s): %s", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
 
 	if (req->result > 0) {
 		for (int i = 0; i < req->result; i++) {

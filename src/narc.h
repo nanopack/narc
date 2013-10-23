@@ -137,6 +137,8 @@ void		initServer(void);
 void		openFile(narcStream *stream);
 void		onFileOpen(uv_fs_t *req);
 void		initWatcher(narcStream *stream);
+void		setOpenFileTimer(narcStream *stream);
+void		onOpenFileTimeout(uv_timer_t* timer, int status);
 void		onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status);
 void		statFile(narcStream *stream);
 void		onFileStat(uv_fs_t* req);
