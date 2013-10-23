@@ -44,6 +44,7 @@
 
 /* Static narc configuration */
 #define NARC_MAX_BUFF_SIZE 		4096
+#define NARC_MAX_MESSAGE_SIZE 		1024
 #define NARC_CONFIGLINE_MAX		1024
 #define NARC_MAX_LOGMSG_LEN		1024	/* Default maximum length of syslog messages */
 #define NARC_DEFAULT_DAEMONIZE   	0
@@ -55,6 +56,10 @@
 #define NARC_DEFAULT_PORT 		514
 #define NARC_DEFAULT_PROTO		"tcp"
 #define NARC_DEFAULT_IDENTIFIER		""
+
+/* Stream locking */
+#define NARC_STREAM_LOCKED	1
+#define NARC_STREAM_UNLOCKED	2
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -77,12 +82,15 @@
  * Data types
  *----------------------------------------------------------------------------*/
 
-typedef struct narcStream {
+typedef struct {
 	char *id;				/* message id prefix */
 	char *file;				/* absolute path to the file */
-	char buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
 	int fd;					/* file descriptor */
 	uv_statbuf_t *stat;			/* the stat struct */
+	char buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
+	char line[NARC_MAX_LOGMSG_LEN + 1];	/* the current line */
+	int index;				/* the line character index */
+	int lock;				/* read lock to prevent resetting buffers */
 } narcStream;
 
 /*-----------------------------------------------------------------------------
@@ -135,7 +143,8 @@ void		onFileStat(uv_fs_t* req);
 void		readFile(narcStream *stream);
 void		onFileRead(uv_fs_t *req);
 void		initBuffer(char *buffer);
-void		handleMessage(narcStream *stream, char *message);
+void		initLine(char *line);
+void		handleMessage(char *id, char *message);
 
 /* Logging */
 #ifdef __GNUC__

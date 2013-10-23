@@ -116,9 +116,8 @@ initServerConfig(void)
 void
 initServer(void)
 {
-	if (server.syslog_enabled) {
+	if (server.syslog_enabled)
 		openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT, server.syslog_facility);
-	}
 
 	server.loop = uv_default_loop();
 
@@ -126,9 +125,8 @@ initServer(void)
 	listNode *node;
 
 	iter = listGetIterator(server.streams, AL_START_HEAD);
-	while ((node = listNext(iter)) != NULL) {
+	while ((node = listNext(iter)) != NULL)
 		openFile((narcStream *)listNodeValue(node));
-	}
 }
 
 void
@@ -150,10 +148,13 @@ onFileOpen(uv_fs_t *req)
 		exit(1);
 	}
 
-	stream->stat = NULL;
-	stream->fd = req->result;
+	stream->fd    = req->result;
+	stream->stat  = NULL;
+	stream->index = 0;
+	stream->lock  = NARC_STREAM_UNLOCKED;
 
 	initWatcher(stream);
+	statFile(stream);
 
 	uv_fs_req_cleanup(req);
 	zfree(req);
@@ -163,10 +164,11 @@ void
 initWatcher(narcStream *stream)
 {
 	uv_fs_event_t *event = zmalloc(sizeof(uv_fs_event_t));
-	if (uv_fs_event_init(server.loop, event, stream->file, onFileChange, 0) == UV_OK){
+	if (uv_fs_event_init(server.loop, event, stream->file, onFileChange, 0) == UV_OK)
 		event->data = (void *)stream;
-	}
 }
+
+/*=========================== Callbacks and core functionality ========================= */
 
 void 
 onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
@@ -179,23 +181,24 @@ void
 statFile(narcStream *stream)
 {
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_stat(server.loop, req, stream->file, onFileStat) == UV_OK) {
+	if (uv_fs_stat(server.loop, req, stream->file, onFileStat) == UV_OK)
 		req->data = (void *)stream;
-	}
 }
 
 void
 onFileStat(uv_fs_t* req)
 {
-	narcStream *stream = req->data;
+	narcStream *stream     = req->data;
 	uv_statbuf_t *prevStat = stream->stat;
-	uv_statbuf_t *curStat = req->ptr;
+	uv_statbuf_t *curStat  = req->ptr;
 
-	/* check to see if we're starting, or if a file has been truncated */
-	if (prevStat == NULL || curStat->st_size < prevStat->st_size) {
-		/* set the file offset to the end of the file */
+	if (prevStat == NULL)
+		/* seek to the end of the file */
 		lseek(stream->fd, 0, SEEK_END);
-	}
+
+	else if (curStat->st_size < prevStat->st_size)
+		/* reset to beginning of file */
+		lseek(stream->fd, 0, SEEK_SET);
 
 	stream->stat = curStat;
 
@@ -208,10 +211,14 @@ onFileStat(uv_fs_t* req)
 void
 readFile(narcStream *stream)
 {
+	if (stream->lock == NARC_STREAM_LOCKED)
+		return;
+
 	initBuffer(stream->buffer);
 
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
 	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, sizeof(stream->buffer) -1, -1, onFileRead) == UV_OK) {
+		stream->lock = NARC_STREAM_LOCKED;
 		req->data = (void *)stream;
 	}
 }
@@ -221,11 +228,30 @@ onFileRead(uv_fs_t *req)
 {
 	narcStream *stream = req->data;
 
-	if (req->result < 0) {
-		printf("Read error: %s\n", uv_strerror(uv_last_error(uv_default_loop())));
-	} else {
-		printf("%s", stream->buffer);
+	if (stream->index == 0)
+		initLine(stream->line);
+
+	if (req->result < 0)
+		narcLog(NARC_WARNING, "Read error (%s): %s\n", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
+
+	if (req->result > 0) {
+		for (int i = 0; i < req->result; i++) {
+			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
+				stream->line[stream->index] = '\0';
+				handleMessage(stream->id, stream->line);
+				initLine(stream->line);
+				stream->index = 0;
+			} else {
+				stream->line[stream->index] = stream->buffer[i];
+				stream->index += 1;
+			}
+		}
 	}
+
+	stream->lock = NARC_STREAM_UNLOCKED;
+
+	if (req->result == NARC_MAX_BUFF_SIZE -1)
+		readFile(stream);
 
 	uv_fs_req_cleanup(req);
 	zfree(req);
@@ -238,9 +264,15 @@ initBuffer(char *buffer)
 }
 
 void
-handleMessage(narcStream *stream, char *message)
+initLine(char *line)
 {
-	printf("%s %s", stream->id, message);
+	memset(line, '\0', NARC_MAX_MESSAGE_SIZE);
+}
+
+void
+handleMessage(char *id, char *message)
+{
+	printf("%s %s\n", id, message);
 }
 
 /* =================================== Main! ================================ */
