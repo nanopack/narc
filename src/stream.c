@@ -54,6 +54,30 @@ init_line(char *line)
 }
 
 void
+lock_stream(narc_stream *stream)
+{
+	stream->lock = NARC_STREAM_LOCKED;
+}
+
+int
+stream_locked(narc_stream *stream)
+{
+	return (stream->lock == NARC_STREAM_LOCKED);
+}
+
+void
+unlock_stream(narc_stream *stream)
+{
+	stream->lock = NARC_STREAM_UNLOCKED;
+}
+
+int
+stream_unlocked(narc_stream *stream)
+{
+	return (stream->lock == NARC_STREAM_UNLOCKED);
+}
+
+void
 handle_message(char *id, char *message)
 {
 	printf("%s %s\n", id, message);
@@ -82,11 +106,7 @@ handle_file_open(uv_fs_t *req)
 	} else {
 		narc_log(NARC_NOTICE, "File opened: %s", stream->file);
 
-		stream->attempts = 0;
-		stream->fd       = req->result;
-		stream->size     = -1;
-		stream->index    = 0;
-		stream->lock     = NARC_STREAM_UNLOCKED;
+		stream->fd = req->result;
 
 		start_file_watcher(stream);
 		start_file_stat(stream);
@@ -163,7 +183,7 @@ handle_file_read(uv_fs_t *req)
 		}
 	}
 
-	stream->lock = NARC_STREAM_UNLOCKED;
+	unlock_stream(stream);
 
 	if (req->result == NARC_MAX_BUFF_SIZE -1)
 		start_file_read(stream);
@@ -172,7 +192,7 @@ handle_file_read(uv_fs_t *req)
 	zfree(req);
 }
 
-/*================================= API =================================== */
+/*================================= Watchers =================================== */
 
 void
 start_file_open(narc_stream *stream)
@@ -211,16 +231,41 @@ start_file_stat(narc_stream *stream)
 void
 start_file_read(narc_stream *stream)
 {
-	if (stream->lock == NARC_STREAM_LOCKED)
+	if (stream_locked(stream))
 		return;
 
 	init_buffer(stream->buffer);
 
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
 	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, sizeof(stream->buffer) -1, -1, handle_file_read) == UV_OK) {
-		stream->lock = NARC_STREAM_LOCKED;
+		lock_stream(stream);
 		req->data = (void *)stream;
 	}
+}
+
+/*================================= API =================================== */
+
+narc_stream
+*new_stream(char *id, char *file)
+{
+	narc_stream *stream = zmalloc(sizeof(narc_stream));
+
+	stream->id       = id;
+	stream->file     = file;
+	stream->attempts = 0;
+	stream->size     = -1;
+	stream->index    = 0;
+	stream->lock     = NARC_STREAM_UNLOCKED;
+
+	return stream;
+}
+
+void
+free_stream(narc_stream *stream)
+{
+	zfree(stream->id);
+	zfree(stream->file);
+	zfree(stream);
 }
 
 void

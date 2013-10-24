@@ -34,7 +34,6 @@
 
 #include "adlist.h"	/* Linked lists */
 #include "version.h"	/* Version macro */
-#include "util.h"	/* Misc functions useful in many places */
 
 /* Error codes */
 #define NARC_OK		0
@@ -57,10 +56,6 @@
 #define NARC_DEFAULT_ATTEMPTS		2
 #define NARC_DEFAULT_DELAY		3000
 
-/* Stream locking */
-#define NARC_STREAM_LOCKED	1
-#define NARC_STREAM_UNLOCKED	2
-
 /* Log levels */
 #define NARC_DEBUG		0
 #define NARC_VERBOSE		1
@@ -82,7 +77,7 @@
  * Global state
  *----------------------------------------------------------------------------*/
 
-struct narcServer {
+struct narc_server {
 	/* General */
 	char		*configfile;			/* Absolute config file path, or NULL */
 	char		*pidfile;			/* PID file path */
@@ -111,7 +106,7 @@ struct narcServer {
  * Extern declarations
  *----------------------------------------------------------------------------*/
 
-extern struct narcServer	server;
+extern struct narc_server	server;
 
 /*-----------------------------------------------------------------------------
  * Functions prototypes

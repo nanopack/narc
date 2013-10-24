@@ -28,6 +28,7 @@
 #include "narc.h"
 #include "stream.h"
 
+#include "sds.h"	/* dynamic safe strings */
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
@@ -178,10 +179,9 @@ load_server_config_from_string(char *config)
 			zfree(server.identifier);
 			server.identifier = zstrdup(argv[1]);
 		} else if (!strcasecmp(argv[0],"stream") && argc == 3) {
-			narc_stream *stream = zmalloc(sizeof(narc_stream));
-			stream->id = (char *)sdsdup(argv[1]);
-			stream->file = (char *)sdsdup(argv[2]);
-			stream->attempts = 0;
+			char *id = sdsdup(argv[1]);
+			char *file = sdsdup(argv[2]);
+			narc_stream *stream = new_stream(id, file);
 			listAddNodeTail(server.streams, (void *)stream);
 		} else {
 			err = "Bad directive or wrong number of arguments"; goto loaderr;

@@ -27,6 +27,10 @@
 
 #include "narc.h"
 
+/* Stream locking */
+#define NARC_STREAM_LOCKED	1
+#define NARC_STREAM_UNLOCKED	2
+
 /*-----------------------------------------------------------------------------
  * Data types
  *----------------------------------------------------------------------------*/
@@ -47,11 +51,16 @@ typedef struct {
  * Functions prototypes
  *----------------------------------------------------------------------------*/
 
+/* watchers */
 void	start_file_open(narc_stream *stream);
 void	start_file_watcher(narc_stream *stream);
 void	start_file_open_timer(narc_stream *stream);
 void	start_file_stat(narc_stream *stream);
 void	start_file_read(narc_stream *stream);
-void	init_stream(narc_stream *stream);
+
+/* api */
+narc_stream 	*new_stream(char *id, char *file);
+void		free_stream(narc_stream *stream);
+void		init_stream(narc_stream *stream);
 
 #endif

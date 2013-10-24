@@ -29,6 +29,7 @@
 
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
+#include "util.h"	/* Misc functions useful in many places */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
@@ -40,7 +41,7 @@
 /*================================= Globals ================================= */
 
 /* Global vars */
-struct narcServer server; /* server global state */
+struct narc_server server; /* server global state */
 
 /*============================ Utility functions ============================ */
 
