@@ -27,18 +27,10 @@
 #ifndef NARC_CONFIG_H
 #define NARC_CONFIG_H
 
-/* Check if we can use setproctitle().
- * BSD systems have support for it, we provide an implementation for
- * Linux and osx. */
-#if (defined __NetBSD__ || defined __FreeBSD__ || defined __OpenBSD__)
-#define USE_SETPROCTITLE
-#endif
+/*-----------------------------------------------------------------------------
+ * Functions prototypes
+ *----------------------------------------------------------------------------*/
 
-#if (defined __linux || defined __APPLE__)
-#define USE_SETPROCTITLE
-#define INIT_SETPROCTITLE_REPLACEMENT
-void	spt_init(int argc, char *argv[]);
-void	setproctitle(const char *fmt, ...);
-#endif
+void	load_server_config(char *filename, char *options);
 
 #endif

@@ -24,6 +24,11 @@
  */
 
 #include "narc.h"
+#include "stream.h" 
+#include "config.h"
+
+#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "sds.h"	/* dynamic safe strings */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
@@ -40,9 +45,9 @@ struct narcServer server; /* server global state */
 /*============================ Utility functions ============================ */
 
 /* Low level logging. To use only for very big messages, otherwise
- * narcLog() is to prefer. */
+ * narc_log() is to prefer. */
 void
-narcLogRaw(int level, const char *msg)
+narc_log_raw(int level, const char *msg)
 {
 	const int syslogLevelMap[] = { LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING };
 	const char *c = ".-*#";
@@ -74,11 +79,11 @@ narcLogRaw(int level, const char *msg)
 	if (server.syslog_enabled) syslog(syslogLevelMap[level], "%s", msg);
 }
 
-/* Like narcLogRaw() but with printf-alike support. This is the function that
+/* Like narc_log_raw() but with printf-alike support. This is the function that
  * is used across the code. The raw version is only used in order to dump
  * the INFO output on crash. */
 void
-narcLog(int level, const char *fmt, ...)
+narc_log(int level, const char *fmt, ...)
 {
 	va_list ap;
 	char msg[NARC_MAX_LOGMSG_LEN];
@@ -89,20 +94,13 @@ narcLog(int level, const char *fmt, ...)
 	vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
 
-	narcLogRaw(level,msg);
-}
-
-int 
-file_exists(char *filename)
-{
-	struct stat buffer;   
-	return (stat(filename, &buffer) == 0);
+	narc_log_raw(level,msg);
 }
 
 /*=========================== Server initialization ========================= */
 
 void
-initServerConfig(void)
+init_server_config(void)
 {
 	server.configfile = NULL;
 	server.pidfile = zstrdup(NARC_DEFAULT_PIDFILE);
@@ -123,7 +121,7 @@ initServerConfig(void)
 }
 
 void
-initServer(void)
+init_server(void)
 {
 	if (server.syslog_enabled)
 		openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT, server.syslog_facility);
@@ -135,193 +133,13 @@ initServer(void)
 
 	iter = listGetIterator(server.streams, AL_START_HEAD);
 	while ((node = listNext(iter)) != NULL)
-		openFile((narcStream *)listNodeValue(node));
-}
-
-void
-openFile(narcStream *stream)
-{
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onFileOpen) == UV_OK)
-		req->data = (void *)stream;
-}
-
-void
-onFileOpen(uv_fs_t *req)
-{
-	narcStream *stream = req->data;
-
-	if (req->result == -1) {
-		narcLog(NARC_WARNING, "Error opening %s (%d/%d): errno %d", 
-			stream->file, 
-			stream->attempts,
-			server.max_attempts,
-			req->errorno);
-
-		if (stream->attempts == server.max_attempts)
-			narcLog(NARC_WARNING, "Reached max open attempts: %s", stream->file);
-		else {
-			stream->attempts += 1;
-			setOpenFileTimer(stream);
-		}
-	} else {
-		narcLog(NARC_NOTICE, "File opened: %s", stream->file);
-
-		stream->attempts = 0;
-		stream->fd       = req->result;
-		stream->size     = -1;
-		stream->index    = 0;
-		stream->lock     = NARC_STREAM_UNLOCKED;
-
-		initWatcher(stream);
-		statFile(stream);
-	}
-
-	uv_fs_req_cleanup(req);
-	zfree(req);
-}
-
-void
-initWatcher(narcStream *stream)
-{
-	uv_fs_event_t *event = zmalloc(sizeof(uv_fs_event_t));
-	if (uv_fs_event_init(server.loop, event, stream->file, onFileChange, 0) == UV_OK)
-		event->data = (void *)stream;
-}
-
-/*=========================== Callbacks and core functionality ========================= */
-
-void
-setOpenFileTimer(narcStream *stream)
-{
-	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
-	if (uv_timer_init(server.loop, timer) == UV_OK) {
-		if (uv_timer_start(timer, onOpenFileTimeout, server.retry_delay, 0) == UV_OK)
-			timer->data = (void *)stream;
-	}
-}
-
-void
-onOpenFileTimeout(uv_timer_t* timer, int status)
-{
-	openFile((narcStream *)timer->data);
-	zfree(timer);
-}
-
-void 
-onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status) 
-{
-	narcStream *stream = handle->data;
-
-	if (events == UV_CHANGE)
-		statFile(stream);
-
-	else if (!file_exists(stream->file)) {
-		narcLog(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
-		openFile(stream);
-		zfree(handle);
-	}
-}
-
-void
-statFile(narcStream *stream)
-{
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_stat(server.loop, req, stream->file, onFileStat) == UV_OK)
-		req->data = (void *)stream;
-}
-
-void
-onFileStat(uv_fs_t* req)
-{
-	narcStream *stream = req->data;
-	uv_statbuf_t *stat  = req->ptr;
-
-	if (stream->size < 0)
-		lseek(stream->fd, 0, SEEK_END);
-
-	if (stat->st_size < stream->size)
-		lseek(stream->fd, 0, SEEK_SET);
-
-	stream->size = stat->st_size;
-
-	readFile(stream);
-
-	uv_fs_req_cleanup(req);
-	zfree(req);
-}
-
-void
-readFile(narcStream *stream)
-{
-	if (stream->lock == NARC_STREAM_LOCKED)
-		return;
-
-	initBuffer(stream->buffer);
-
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, sizeof(stream->buffer) -1, -1, onFileRead) == UV_OK) {
-		stream->lock = NARC_STREAM_LOCKED;
-		req->data = (void *)stream;
-	}
-}
-
-void
-onFileRead(uv_fs_t *req)
-{
-	narcStream *stream = req->data;
-
-	if (stream->index == 0)
-		initLine(stream->line);
-
-	if (req->result < 0)
-		narcLog(NARC_WARNING, "Read error (%s): %s", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
-
-	if (req->result > 0) {
-		for (int i = 0; i < req->result; i++) {
-			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
-				stream->line[stream->index] = '\0';
-				handleMessage(stream->id, stream->line);
-				initLine(stream->line);
-				stream->index = 0;
-			} else {
-				stream->line[stream->index] = stream->buffer[i];
-				stream->index += 1;
-			}
-		}
-	}
-
-	stream->lock = NARC_STREAM_UNLOCKED;
-
-	if (req->result == NARC_MAX_BUFF_SIZE -1)
-		readFile(stream);
-
-	uv_fs_req_cleanup(req);
-	zfree(req);
-}
-
-void
-initBuffer(char *buffer)
-{
-	memset(buffer, '\0', NARC_MAX_BUFF_SIZE);
-}
-
-void
-initLine(char *line)
-{
-	memset(line, '\0', NARC_MAX_MESSAGE_SIZE);
-}
-
-void
-handleMessage(char *id, char *message)
-{
-	printf("%s %s\n", id, message);
+		open_file((narc_stream *)listNodeValue(node));
 }
 
 /* =================================== Main! ================================ */
 
 void
-createPidFile(void)
+create_pid_file(void)
 {
 	/* Try to write the pid file in a best-effort way. */
 	FILE *fp = fopen(server.pidfile,"w");
@@ -355,11 +173,11 @@ version(void)
 {
 	printf("Narc v=%s sha=%s:%d malloc=%s bits=%d build=%llx\n",
 		NARC_VERSION,
-		narcGitSHA1(),
-		atoi(narcGitDirty()) > 0,
+		narc_git_sha1(),
+		atoi(narc_git_dirty()) > 0,
 		ZMALLOC_LIB,
 		sizeof(long) == 4 ? 32 : 64,
-		(unsigned long long) narcBuildId());
+		(unsigned long long) narc_build_id());
 	exit(0);
 }
 
@@ -379,14 +197,14 @@ usage(void)
 }
 
 void
-narcOutOfMemoryHandler(size_t allocation_size)
+narc_out_of_memory_handler(size_t allocation_size)
 {
-	narcLog(NARC_WARNING, "Out Of Memory allocating %zu bytes!", allocation_size);
+	narc_log(NARC_WARNING, "Out Of Memory allocating %zu bytes!", allocation_size);
 	narcPanic("Narc aborting for OUT OF MEMORY");
 }
 
 void
-narcSetProcTitle(char *title)
+narc_set_proc_title(char *title)
 {
 #ifdef USE_SETPROCTITLE
 	setproctitle("%s", title);
@@ -400,8 +218,8 @@ main(int argc, char **argv)
 {
 	setlocale(LC_COLLATE,"");
 	zmalloc_enable_thread_safeness();
-	zmalloc_set_oom_handler(narcOutOfMemoryHandler);
-	initServerConfig();
+	zmalloc_set_oom_handler(narc_out_of_memory_handler);
+	init_server_config();
 
 	if (argc >= 2) {
 		int j = 1; /* First option to parse in argv[] */
@@ -434,21 +252,21 @@ main(int argc, char **argv)
 			}
 			j++;
 		}
-		loadServerConfig(configfile, options);
+		load_server_config(configfile, options);
 		sdsfree(options);
 		if (configfile)
 			server.configfile = getAbsolutePath(configfile);
 	} else {
-		narcLog(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
+		narc_log(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
 	}
 
 	if (server.daemonize) daemonize();
-	initServer();
-	if (server.daemonize) createPidFile();
-	narcSetProcTitle(argv[0]);
+	init_server();
+	if (server.daemonize) create_pid_file();
+	narc_set_proc_title(argv[0]);
 
-	narcLog(NARC_WARNING, "Narc started, version " NARC_VERSION);
-	narcLog(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
+	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
+	narc_log(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
 
 	return uv_run(server.loop, UV_RUN_DEFAULT);
 }

@@ -32,9 +32,7 @@
 
 #include <uv.h>		/* Event driven programming library */
 
-#include "sds.h"	/* Dynamic safe strings */
 #include "adlist.h"	/* Linked lists */
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 #include "version.h"	/* Version macro */
 #include "util.h"	/* Misc functions useful in many places */
 
@@ -81,22 +79,6 @@
 #define narcPanic(_e)			_narcPanic(#_e,__FILE__,__LINE__),_exit(1)
 
 /*-----------------------------------------------------------------------------
- * Data types
- *----------------------------------------------------------------------------*/
-
-typedef struct {
-	char 	*id;				/* message id prefix */
-	char 	*file;				/* absolute path to the file */
-	int 	fd;				/* file descriptor */
-	off_t 	size;				/* last known file size in bytes */
-	char 	buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
-	char 	line[NARC_MAX_LOGMSG_LEN + 1];	/* the current line */
-	int 	index;				/* the line character index */
-	int 	lock;				/* read lock to prevent resetting buffers */
-	int 	attempts;			/* open attempts */
-} narcStream;
-
-/*-----------------------------------------------------------------------------
  * Global state
  *----------------------------------------------------------------------------*/
 
@@ -135,49 +117,34 @@ extern struct narcServer	server;
  * Functions prototypes
  *----------------------------------------------------------------------------*/
 /* Core functions and callbacks */
-int 		file_exists(char *filename);
-void		narcOutOfMemoryHandler(size_t allocation_size);
-int		main(int argc, char **argv);
-void		loadServerConfig(char *filename, char *options);
-void		initServerConfig(void);
-void		initServer(void);
-void		openFile(narcStream *stream);
-void		onFileOpen(uv_fs_t *req);
-void		initWatcher(narcStream *stream);
-void		setOpenFileTimer(narcStream *stream);
-void		onOpenFileTimeout(uv_timer_t* timer, int status);
-void		onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status);
-void		statFile(narcStream *stream);
-void		onFileStat(uv_fs_t* req);
-void		readFile(narcStream *stream);
-void		onFileRead(uv_fs_t *req);
-void		initBuffer(char *buffer);
-void		initLine(char *line);
-void		handleMessage(char *id, char *message);
+void	narc_out_of_memory_handler(size_t allocation_size);
+int	main(int argc, char **argv);
+void	init_server_config(void);
+void	init_server(void);
 
 /* Logging */
 #ifdef __GNUC__
-void		narcLog(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void	narc_log(int level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 #else
-void		narcLog(int level, const char *fmt, ...);
+void	narc_log(int level, const char *fmt, ...);
 #endif
-void		narcLogRaw(int level, const char *msg);
+void	narc_logRaw(int level, const char *msg);
 
 /* Git SHA1 */
-char		*narcGitSHA1(void);
-char		*narcGitDirty(void);
-uint64_t	narcBuildId(void);
+char		*narc_git_sha1(void);
+char		*narc_git_dirty(void);
+uint64_t	narc_build_id(void);
 
 /* Deprecated */
 #if defined(__GNUC__)
-void		*calloc(size_t count, size_t size) __attribute__ ((deprecated));
-void		free(void *ptr) __attribute__ ((deprecated));
-void		*malloc(size_t size) __attribute__ ((deprecated));
-void		*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
+void	*calloc(size_t count, size_t size) __attribute__ ((deprecated));
+void	free(void *ptr) __attribute__ ((deprecated));
+void	*malloc(size_t size) __attribute__ ((deprecated));
+void	*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
 #endif
 
 /* Debugging stuff */
-void		_narcAssert(char *estr, char *file, int line);
-void		_narcPanic(char *msg, char *file, int line);
+void	_narcAssert(char *estr, char *file, int line);
+void	_narcPanic(char *msg, char *file, int line);
 
 #endif

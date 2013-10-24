@@ -24,16 +24,20 @@
  * Copyright 2013 Pagoda Box, Inc.  All rights reserved.
  */
 
+#include "config.h"
 #include "narc.h"
+#include "stream.h"
+
+#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
 #include <errno.h>	/* system error numbers */
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <syslog.h>	/* definitions for system error logging */
 
-
+/*-----------------------------------------------------------------------------
+ * Data types
+ *----------------------------------------------------------------------------*/
 
 static struct {
 	const char     *name;
@@ -64,7 +68,7 @@ yesnotoi(char *s)
 }
 
 void
-loadServerConfigFromString(char *config)
+load_server_config_from_string(char *config)
 {
 	char *err = NULL;
 	int linenum = 0, totlines, i;
@@ -174,7 +178,7 @@ loadServerConfigFromString(char *config)
 			zfree(server.identifier);
 			server.identifier = zstrdup(argv[1]);
 		} else if (!strcasecmp(argv[0],"stream") && argc == 3) {
-			narcStream *stream = zmalloc(sizeof(narcStream));
+			narc_stream *stream = zmalloc(sizeof(narc_stream));
 			stream->id = (char *)sdsdup(argv[1]);
 			stream->file = (char *)sdsdup(argv[2]);
 			stream->attempts = 0;
@@ -201,10 +205,10 @@ loaderr:
  * in the 'options' string to the config file before loading.
  *
  * Both filename and options can be NULL, in such a case are considered
- * empty. This way loadServerConfig can be used to just load a file or
+ * empty. This way load_server_config can be used to just load a file or
  * just load a string. */
 void
-loadServerConfig(char *filename, char *options)
+load_server_config(char *filename, char *options)
 {
 	sds config = sdsempty();
 	char buf[NARC_CONFIGLINE_MAX+1];
@@ -217,7 +221,7 @@ loadServerConfig(char *filename, char *options)
 			fp = stdin;
 		} else {
 			if ((fp = fopen(filename,"r")) == NULL) {
-				narcLog(NARC_WARNING,
+				narc_log(NARC_WARNING,
 					"Fatal error, can't open config file '%s'", filename);
 				exit(1);
 			}
@@ -231,6 +235,6 @@ loadServerConfig(char *filename, char *options)
 		config = sdscat(config,"\n");
 		config = sdscat(config,options);
 	}
-	loadServerConfigFromString(config);
+	load_server_config_from_string(config);
 	sdsfree(config);
 }

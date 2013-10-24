@@ -92,24 +92,24 @@ void mixDigest(unsigned char *digest, void *ptr, size_t len) {
 /* =========================== Crash handling  ============================== */
 
 void _narcAssert(char *estr, char *file, int line) {
-    narcLog(NARC_WARNING,"=== ASSERTION FAILED ===");
-    narcLog(NARC_WARNING,"==> %s:%d '%s' is not true",file,line,estr);
+    narc_log(NARC_WARNING,"=== ASSERTION FAILED ===");
+    narc_log(NARC_WARNING,"==> %s:%d '%s' is not true",file,line,estr);
 #ifdef HAVE_BACKTRACE
     server.assert_failed = estr;
     server.assert_file = file;
     server.assert_line = line;
-    narcLog(NARC_WARNING,"(forcing SIGSEGV to print the bug report.)");
+    narc_log(NARC_WARNING,"(forcing SIGSEGV to print the bug report.)");
 #endif
     *((char*)-1) = 'x';
 }
 
 void _narcPanic(char *msg, char *file, int line) {
-    narcLog(NARC_WARNING,"------------------------------------------------");
-    narcLog(NARC_WARNING,"!!! Software Failure. Press left mouse button to continue");
-    narcLog(NARC_WARNING,"Guru Meditation: %s #%s:%d",msg,file,line);
+    narc_log(NARC_WARNING,"------------------------------------------------");
+    narc_log(NARC_WARNING,"!!! Software Failure. Press left mouse button to continue");
+    narc_log(NARC_WARNING,"Guru Meditation: %s #%s:%d",msg,file,line);
 #ifdef HAVE_BACKTRACE
-    narcLog(NARC_WARNING,"(forcing SIGSEGV in order to print the stack trace)");
+    narc_log(NARC_WARNING,"(forcing SIGSEGV in order to print the stack trace)");
 #endif
-    narcLog(NARC_WARNING,"------------------------------------------------");
+    narc_log(NARC_WARNING,"------------------------------------------------");
     *((char*)-1) = 'x';
 }

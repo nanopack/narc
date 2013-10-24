@@ -35,19 +35,19 @@
 #include "crc64.h"
 
 char
-*narcGitSHA1(void)
+*narc_git_sha1(void)
 {
   return NARC_GIT_SHA1;
 }
 
 char
-*narcGitDirty(void)
+*narc_git_dirty(void)
 {
   return NARC_GIT_DIRTY;
 }
 
 uint64_t
-narcBuildId(void)
+narc_build_id(void)
 {
   char *buildid = NARC_VERSION NARC_BUILD_ID NARC_GIT_DIRTY NARC_GIT_SHA1;
 
