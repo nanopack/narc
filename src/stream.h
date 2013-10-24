@@ -47,19 +47,11 @@ typedef struct {
  * Functions prototypes
  *----------------------------------------------------------------------------*/
 
-int 	file_exists(char *filename);
-void	open_file(narc_stream *stream);
-void	on_file_open(uv_fs_t *req);
-void	init_watcher(narc_stream *stream);
-void	set_open_file_timer(narc_stream *stream);
-void	on_open_file_timeout(uv_timer_t* timer, int status);
-void	on_file_change(uv_fs_event_t *handle, const char *filename, int events, int status);
-void	stat_file(narc_stream *stream);
-void	on_file_stat(uv_fs_t* req);
-void	read_file(narc_stream *stream);
-void	on_file_read(uv_fs_t *req);
-void	init_buffer(char *buffer);
-void	init_line(char *line);
-void	handle_message(char *id, char *message);
+void	start_file_open(narc_stream *stream);
+void	start_file_watcher(narc_stream *stream);
+void	start_file_open_timer(narc_stream *stream);
+void	start_file_stat(narc_stream *stream);
+void	start_file_read(narc_stream *stream);
+void	init_stream(narc_stream *stream);
 
 #endif

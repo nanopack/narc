@@ -133,7 +133,7 @@ init_server(void)
 
 	iter = listGetIterator(server.streams, AL_START_HEAD);
 	while ((node = listNext(iter)) != NULL)
-		open_file((narc_stream *)listNodeValue(node));
+		init_stream((narc_stream *)listNodeValue(node));
 }
 
 /* =================================== Main! ================================ */
