@@ -92,6 +92,13 @@ narcLog(int level, const char *fmt, ...)
 	narcLogRaw(level,msg);
 }
 
+int 
+file_exists(char *filename)
+{
+	struct stat buffer;   
+	return (stat(filename, &buffer) == 0);
+}
+
 /*=========================== Server initialization ========================= */
 
 void
@@ -110,6 +117,8 @@ initServerConfig(void)
 	server.syslog_enabled = NARC_DEFAULT_SYSLOG_ENABLED;
 	server.syslog_ident = zstrdup(NARC_DEFAULT_SYSLOG_IDENT);
 	server.syslog_facility = LOG_LOCAL0;
+	server.max_attempts = NARC_DEFAULT_ATTEMPTS;
+	server.retry_delay = NARC_DEFAULT_DELAY;
 	server.streams = listCreate();
 }
 
@@ -133,9 +142,8 @@ void
 openFile(narcStream *stream)
 {
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onFileOpen) == UV_OK) {
+	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, onFileOpen) == UV_OK)
 		req->data = (void *)stream;
-	}
 }
 
 void
@@ -144,13 +152,26 @@ onFileOpen(uv_fs_t *req)
 	narcStream *stream = req->data;
 
 	if (req->result == -1) {
-		narcLog(NARC_WARNING, "Error opening %s: errno %d", stream->file, req->errorno);
-		setOpenFileTimer(stream);
+		narcLog(NARC_WARNING, "Error opening %s (%d/%d): errno %d", 
+			stream->file, 
+			stream->attempts,
+			server.max_attempts,
+			req->errorno);
+
+		if (stream->attempts == server.max_attempts)
+			narcLog(NARC_WARNING, "Reached max open attempts: %s", stream->file);
+		else {
+			stream->attempts += 1;
+			setOpenFileTimer(stream);
+		}
 	} else {
-		stream->fd    = req->result;
-		stream->stat  = NULL;
-		stream->index = 0;
-		stream->lock  = NARC_STREAM_UNLOCKED;
+		narcLog(NARC_NOTICE, "File opened: %s", stream->file);
+
+		stream->attempts = 0;
+		stream->fd       = req->result;
+		stream->size     = -1;
+		stream->index    = 0;
+		stream->lock     = NARC_STREAM_UNLOCKED;
 
 		initWatcher(stream);
 		statFile(stream);
@@ -173,12 +194,9 @@ initWatcher(narcStream *stream)
 void
 setOpenFileTimer(narcStream *stream)
 {
-
-	uint64_t timeout = 5000; /* 5 seconds */
-
 	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
 	if (uv_timer_init(server.loop, timer) == UV_OK) {
-		if (uv_timer_start(timer, onOpenFileTimeout, timeout, 0) == UV_OK)
+		if (uv_timer_start(timer, onOpenFileTimeout, server.retry_delay, 0) == UV_OK)
 			timer->data = (void *)stream;
 	}
 }
@@ -197,7 +215,8 @@ onFileChange(uv_fs_event_t *handle, const char *filename, int events, int status
 
 	if (events == UV_CHANGE)
 		statFile(stream);
-	else {
+
+	else if (!file_exists(stream->file)) {
 		narcLog(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		openFile(stream);
 		zfree(handle);
@@ -215,17 +234,16 @@ statFile(narcStream *stream)
 void
 onFileStat(uv_fs_t* req)
 {
-	narcStream *stream     = req->data;
-	uv_statbuf_t *prevStat = stream->stat;
-	uv_statbuf_t *curStat  = req->ptr;
+	narcStream *stream = req->data;
+	uv_statbuf_t *stat  = req->ptr;
 
-	if (prevStat == NULL)
+	if (stream->size < 0)
 		lseek(stream->fd, 0, SEEK_END);
 
-	else if (curStat->st_size < prevStat->st_size)
+	if (stat->st_size < stream->size)
 		lseek(stream->fd, 0, SEEK_SET);
 
-	stream->stat = curStat;
+	stream->size = stat->st_size;
 
 	readFile(stream);
 

@@ -166,6 +166,10 @@ loadServerConfigFromString(char *config)
 				err = "Invalid protocol. Must be either udp or tcp";
 				goto loaderr;
 			}
+		} else if (!strcasecmp(argv[0], "max-attempts") && argc == 2) {
+			server.max_attempts = atoi(argv[1]);
+		} else if (!strcasecmp(argv[0], "retry-delay") && argc == 2) {
+			server.retry_delay = atoll(argv[1]);
 		} else if (!strcasecmp(argv[0], "identifier") && argc == 2) {
 			zfree(server.identifier);
 			server.identifier = zstrdup(argv[1]);
@@ -173,6 +177,7 @@ loadServerConfigFromString(char *config)
 			narcStream *stream = zmalloc(sizeof(narcStream));
 			stream->id = (char *)sdsdup(argv[1]);
 			stream->file = (char *)sdsdup(argv[2]);
+			stream->attempts = 0;
 			listAddNodeTail(server.streams, (void *)stream);
 		} else {
 			err = "Bad directive or wrong number of arguments"; goto loaderr;

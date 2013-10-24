@@ -56,6 +56,8 @@
 #define NARC_DEFAULT_PORT 		514
 #define NARC_DEFAULT_PROTO		"tcp"
 #define NARC_DEFAULT_IDENTIFIER		""
+#define NARC_DEFAULT_ATTEMPTS		2
+#define NARC_DEFAULT_DELAY		3000
 
 /* Stream locking */
 #define NARC_STREAM_LOCKED	1
@@ -83,14 +85,15 @@
  *----------------------------------------------------------------------------*/
 
 typedef struct {
-	char *id;				/* message id prefix */
-	char *file;				/* absolute path to the file */
-	int fd;					/* file descriptor */
-	uv_statbuf_t *stat;			/* the stat struct */
-	char buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
-	char line[NARC_MAX_LOGMSG_LEN + 1];	/* the current line */
-	int index;				/* the line character index */
-	int lock;				/* read lock to prevent resetting buffers */
+	char 	*id;				/* message id prefix */
+	char 	*file;				/* absolute path to the file */
+	int 	fd;				/* file descriptor */
+	off_t 	size;				/* last known file size in bytes */
+	char 	buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
+	char 	line[NARC_MAX_LOGMSG_LEN + 1];	/* the current line */
+	int 	index;				/* the line character index */
+	int 	lock;				/* read lock to prevent resetting buffers */
+	int 	attempts;			/* open attempts */
 } narcStream;
 
 /*-----------------------------------------------------------------------------
@@ -117,6 +120,9 @@ struct narcServer {
 	int		syslog_enabled;			/* Is syslog enabled? */
 	char		*syslog_ident;			/* Syslog ident */
 	int		syslog_facility;		/* Syslog facility */
+	/* File access */
+	int 		max_attempts;			/* Max open attempts */
+	uint64_t 	retry_delay;			/* Millesecond delay between attempts */
 };
 
 /*-----------------------------------------------------------------------------
@@ -129,6 +135,7 @@ extern struct narcServer	server;
  * Functions prototypes
  *----------------------------------------------------------------------------*/
 /* Core functions and callbacks */
+int 		file_exists(char *filename);
 void		narcOutOfMemoryHandler(size_t allocation_size);
 int		main(int argc, char **argv);
 void		loadServerConfig(char *filename, char *options);
