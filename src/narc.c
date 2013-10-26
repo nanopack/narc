@@ -26,6 +26,7 @@
 #include "narc.h"
 #include "stream.h" 
 #include "config.h"
+#include "tcp_client.h"
 
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
@@ -103,12 +104,11 @@ narc_log(int level, const char *fmt, ...)
 void
 init_server_config(void)
 {
-	server.configfile = NULL;
 	server.pidfile = zstrdup(NARC_DEFAULT_PIDFILE);
 	server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
 	server.host = zstrdup(NARC_DEFAULT_HOST);
 	server.port = NARC_DEFAULT_PORT;
-	server.protocol = zstrdup(NARC_DEFAULT_PROTO);
+	server.protocol = NARC_DEFAULT_PROTO;
 	server.identifier = zstrdup(NARC_DEFAULT_IDENTIFIER);
 	server.verbosity = NARC_DEFAULT_VERBOSITY;
 	server.daemonize = NARC_DEFAULT_DAEMONIZE;
@@ -135,6 +135,10 @@ init_server(void)
 	iter = listGetIterator(server.streams, AL_START_HEAD);
 	while ((node = listNext(iter)) != NULL)
 		init_stream((narc_stream *)listNodeValue(node));
+
+	listReleaseIterator(iter);
+
+	init_tcp_client();
 }
 
 /* =================================== Main! ================================ */
@@ -214,6 +218,13 @@ narc_set_proc_title(char *title)
 #endif
 }
 
+void
+stop(void)
+{
+	narc_log(NARC_NOTICE, "Stopping");
+	uv_stop(server.loop);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -255,8 +266,6 @@ main(int argc, char **argv)
 		}
 		load_server_config(configfile, options);
 		sdsfree(options);
-		if (configfile)
-			server.configfile = getAbsolutePath(configfile);
 	} else {
 		narc_log(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
 	}

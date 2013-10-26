@@ -30,14 +30,19 @@
 #include "solarisfixes.h"
 #endif
 
-#include <uv.h>		/* Event driven programming library */
-
 #include "adlist.h"	/* Linked lists */
 #include "version.h"	/* Version macro */
+
+#include <uv.h>		/* Event driven programming library */
 
 /* Error codes */
 #define NARC_OK		0
 #define NARC_ERR	-1
+
+/* protocol types */
+#define NARC_PROTO_UDP 		1
+#define NARC_PROTO_TCP 		2
+#define NARC_PROTO_SYSLOG 	3
 
 /* Static narc configuration */
 #define NARC_MAX_BUFF_SIZE 		4096
@@ -51,7 +56,7 @@
 #define NARC_DEFAULT_SYSLOG_ENABLED	0
 #define NARC_DEFAULT_HOST 		"127.0.0.1"
 #define NARC_DEFAULT_PORT 		514
-#define NARC_DEFAULT_PROTO		"tcp"
+#define NARC_DEFAULT_PROTO		2
 #define NARC_DEFAULT_IDENTIFIER		""
 #define NARC_DEFAULT_ATTEMPTS		2
 #define NARC_DEFAULT_DELAY		3000
@@ -79,16 +84,16 @@
 
 struct narc_server {
 	/* General */
-	char		*configfile;			/* Absolute config file path, or NULL */
 	char		*pidfile;			/* PID file path */
 	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
 	list		*streams;			/* Stream list */
+	void		*client;			/* the client data pointer */
 	uv_loop_t	*loop;				/* Event loop */
 	char 		*identifier; 			/* prefix all messages */
 	/* Networking */
 	char		*host; 				/* Remote syslog host */
 	int 		port; 				/* Remote syslog port */
-	char 		*protocol; 			/* Protocol to use when communicating with remote host */
+	int 		protocol; 			/* Protocol to use when communicating with remote host */
 	/* Configuration */
 	int		verbosity;			/* Loglevel in narc.conf */
 	int		daemonize;			/* True if running as a daemon */
@@ -116,6 +121,7 @@ void	narc_out_of_memory_handler(size_t allocation_size);
 int	main(int argc, char **argv);
 void	init_server_config(void);
 void	init_server(void);
+void	stop(void);
 
 /* Logging */
 #ifdef __GNUC__

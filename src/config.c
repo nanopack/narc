@@ -164,9 +164,8 @@ load_server_config_from_string(char *config)
 				err = "Invalid port"; goto loaderr;
 			}
 		} else if (!strcasecmp(argv[0], "remote-proto") && argc == 2) {
-			zfree(server.protocol);
-			if (!strcasecmp(argv[1],"udp")) server.protocol = sdsnew("udp");
-			else if (!strcasecmp(argv[1],"tcp")) server.protocol = sdsnew("tcp");
+			if (!strcasecmp(argv[1],"udp")) server.protocol = NARC_PROTO_UDP;
+			else if (!strcasecmp(argv[1],"tcp")) server.protocol = NARC_PROTO_TCP;
 			else {
 				err = "Invalid protocol. Must be either udp or tcp";
 				goto loaderr;

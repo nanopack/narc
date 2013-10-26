@@ -25,12 +25,16 @@
 
 #include "narc.h"
 #include "stream.h"
-
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "sds.h"	/* dynamic safe strings */
+
+// temporary
+#include "tcp_client.h"
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
 #include <unistd.h>	/* standard symbolic constants and types */
+#include <uv.h>		/* Event driven programming library */
 
 /*============================ Utility functions ============================ */
 
@@ -80,7 +84,13 @@ stream_unlocked(narc_stream *stream)
 void
 handle_message(char *id, char *message)
 {
-	printf("%s %s\n", id, message);
+	if (!strcasecmp(message, "exit")) {
+		stop();
+	} else {
+		char *s;
+		s = sdscatprintf(sdsempty(), "%s %s\n", id, message);
+		submit_tcp_message(s);
+	}
 }
 
 /*============================== Callbacks ================================= */
