@@ -35,6 +35,7 @@
 #include <stdlib.h>	/* standard library definitions */
 #include <unistd.h>	/* standard symbolic constants and types */
 #include <uv.h>		/* Event driven programming library */
+#include <string.h>	/* string operations */
 
 /*============================ Utility functions ============================ */
 
@@ -84,13 +85,11 @@ stream_unlocked(narc_stream *stream)
 void
 handle_message(char *id, char *message)
 {
-	if (!strcasecmp(message, "exit")) {
-		stop();
-	} else {
-		char *s;
-		s = sdscatprintf(sdsempty(), "%s %s\n", id, message);
-		submit_tcp_message(s);
-	}
+	printf("%s %s\n", id, message);
+
+	char *s;
+	s = sdscatprintf(sdsempty(), "%s %s\n", id, message);
+	submit_tcp_message(s);
 }
 
 /*============================== Callbacks ================================= */
@@ -136,6 +135,7 @@ handle_file_open_timeout(uv_timer_t* timer, int status)
 void 
 handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int status) 
 {
+
 	narc_stream *stream = handle->data;
 
 	if (events == UV_CHANGE)
@@ -144,7 +144,6 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 	else if (!file_exists(stream->file)) {
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		start_file_open(stream);
-		zfree(handle);
 	}
 }
 
@@ -173,13 +172,14 @@ handle_file_read(uv_fs_t *req)
 {
 	narc_stream *stream = req->data;
 
-	if (stream->index == 0)
-		init_line(stream->line);
-
 	if (req->result < 0)
 		narc_log(NARC_WARNING, "Read error (%s): %s", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
 
 	if (req->result > 0) {
+		
+		if (stream->index == 0)
+			init_line(stream->line);
+
 		for (int i = 0; i < req->result; i++) {
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
 				stream->line[stream->index] = '\0';

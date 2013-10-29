@@ -38,6 +38,7 @@
 #include <sys/time.h>	/* time types */
 #include <unistd.h>	/* standard symbolic constants and types */
 #include <locale.h>	/* set program locale */
+#include <string.h>	/* string operations */
 
 /*================================= Globals ================================= */
 

@@ -35,6 +35,7 @@
 #include <stdlib.h>	/* standard library definitions */
 #include <errno.h>	/* system error numbers */
 #include <syslog.h>	/* definitions for system error logging */
+#include <string.h>	/* string operations */
 
 /*-----------------------------------------------------------------------------
  * Data types

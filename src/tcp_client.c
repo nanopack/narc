@@ -44,6 +44,24 @@ free_write_req(uv_write_t *req)
 	zfree(req);
 }
 
+narc_tcp_client
+*new_tcp_client(void)
+{
+	narc_tcp_client *client = (narc_tcp_client *)zmalloc(sizeof(narc_tcp_client));
+
+	client->state  = NARC_TCP_INITIALIZED;
+	client->socket = NULL;
+	client->stream = NULL;
+
+	return client;
+}
+
+int
+tcp_client_established(narc_tcp_client *client)
+{
+	return (client->state == NARC_TCP_ESTABLISHED);
+}
+
 /*=============================== Callbacks ================================= */
 
 void 
@@ -67,19 +85,18 @@ handle_tcp_write(uv_write_t* req, int status)
 void
 start_tcp_connect(void)
 {
-	narc_tcp_client *client = server.client;
+	narc_tcp_client *client = (narc_tcp_client *)server.client;
 	uv_tcp_t 	*socket = (uv_tcp_t *)zmalloc(sizeof(uv_tcp_t));
-
-	uv_connect_t *connect = zmalloc(sizeof(uv_connect_t));
-
-	struct sockaddr_in dest = uv_ip4_addr(server.host, server.port);
 
 	uv_tcp_init(server.loop, socket);
 	uv_tcp_keepalive(socket, 1, 60);
 
-	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK) {
+	struct sockaddr_in dest = uv_ip4_addr(server.host, server.port);
+
+	uv_connect_t *connect = zmalloc(sizeof(uv_connect_t));
+	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK)
 		client->socket = socket;
-	}
+
 }
 
 /*================================== API ==================================== */
@@ -87,7 +104,7 @@ start_tcp_connect(void)
 void
 init_tcp_client(void)
 {
-	server.client = zmalloc(sizeof(narc_tcp_client));
+	server.client = (void *)new_tcp_client();
 
 	start_tcp_connect();
 }
@@ -96,11 +113,17 @@ void
 submit_tcp_message(char *message)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
-	uv_write_t 	*req    = (uv_write_t *)zmalloc(sizeof(uv_write_t));
-	uv_buf_t 	buf     = uv_buf_init(message, strlen(message));
 
-	if (uv_write(req, client->stream, &buf, 1, handle_tcp_write) == UV_OK) {
-		req->data = (void *)message;
+	if ( ! tcp_client_established(client)) {
+		sdsfree(message);
+		return;
 	}
+
+	uv_write_t *req = (uv_write_t *)zmalloc(sizeof(uv_write_t));
+	uv_buf_t buf    = uv_buf_init(message, strlen(message));
+
+	if (uv_write(req, client->stream, &buf, 1, handle_tcp_write) == UV_OK)
+		req->data = (void *)message;
+
 }
 

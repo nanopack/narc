@@ -31,11 +31,16 @@
 
 #include <uv.h>		/* Event driven programming library */
 
+/* connection states */
+#define NARC_TCP_INITIALIZED	0
+#define NARC_TCP_ESTABLISHED	1
+
 /*-----------------------------------------------------------------------------
  * Data types
  *----------------------------------------------------------------------------*/
 
 typedef struct {
+	int 		state;		/* connection state */
 	uv_tcp_t 	*socket;	/* tcp socket */
 	uv_stream_t	*stream;	/* connection stream */
 } narc_tcp_client;
