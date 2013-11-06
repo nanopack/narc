@@ -82,16 +82,6 @@ stream_unlocked(narc_stream *stream)
 	return (stream->lock == NARC_STREAM_UNLOCKED);
 }
 
-void
-handle_message(char *id, char *message)
-{
-	printf("%s %s\n", id, message);
-
-	char *s;
-	s = sdscatprintf(sdsempty(), "%s %s\n", id, message);
-	submit_tcp_message(s);
-}
-
 /*============================== Callbacks ================================= */
 
 void
@@ -103,19 +93,18 @@ handle_file_open(uv_fs_t *req)
 		narc_log(NARC_WARNING, "Error opening %s (%d/%d): errno %d", 
 			stream->file, 
 			stream->attempts,
-			server.max_attempts,
+			server.max_open_attempts,
 			req->errorno);
 
-		if (stream->attempts == server.max_attempts)
+		if (stream->attempts == server.max_open_attempts)
 			narc_log(NARC_WARNING, "Reached max open attempts: %s", stream->file);
-		else {
-			stream->attempts += 1;
+		else
 			start_file_open_timer(stream);
-		}
 	} else {
 		narc_log(NARC_NOTICE, "File opened: %s", stream->file);
 
-		stream->fd = req->result;
+		stream->fd       = req->result;
+		stream->attempts = 0;
 
 		start_file_watcher(stream);
 		start_file_stat(stream);
@@ -208,8 +197,10 @@ void
 start_file_open(narc_stream *stream)
 {
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
-	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, handle_file_open) == UV_OK)
+	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, handle_file_open) == UV_OK) {
 		req->data = (void *)stream;
+		stream->attempts += 1;
+	}
 }
 
 void
@@ -225,7 +216,7 @@ start_file_open_timer(narc_stream *stream)
 {
 	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
 	if (uv_timer_init(server.loop, timer) == UV_OK) {
-		if (uv_timer_start(timer, handle_file_open_timeout, server.retry_delay, 0) == UV_OK)
+		if (uv_timer_start(timer, handle_file_open_timeout, server.open_retry_delay, 0) == UV_OK)
 			timer->data = (void *)stream;
 	}
 }

@@ -26,6 +26,8 @@
 #ifndef NARC_H
 #define NARC_H 
 
+#include <syslog.h>	/* definitions for system error logging */
+
 #if defined(__sun)
 #include "solarisfixes.h"
 #endif
@@ -57,9 +59,13 @@
 #define NARC_DEFAULT_HOST 		"127.0.0.1"
 #define NARC_DEFAULT_PORT 		514
 #define NARC_DEFAULT_PROTO		2
-#define NARC_DEFAULT_IDENTIFIER		""
-#define NARC_DEFAULT_ATTEMPTS		2
-#define NARC_DEFAULT_DELAY		3000
+#define NARC_DEFAULT_STREAM_ID		""
+#define NARC_DEFAULT_STREAM_FACILITY 	LOG_USER
+#define NARC_DEFAULT_STREAM_PRIORITY	LOG_ERR
+#define NARC_DEFAULT_OPEN_ATTEMPTS	2
+#define NARC_DEFAULT_OPEN_DELAY		3000
+#define NARC_DEFAULT_CONNECT_ATTEMPTS	2
+#define NARC_DEFAULT_CONNECT_DELAY	3000
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -86,14 +92,7 @@ struct narc_server {
 	/* General */
 	char		*pidfile;			/* PID file path */
 	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
-	list		*streams;			/* Stream list */
-	void		*client;			/* the client data pointer */
 	uv_loop_t	*loop;				/* Event loop */
-	char 		*identifier; 			/* prefix all messages */
-	/* Networking */
-	char		*host; 				/* Remote syslog host */
-	int 		port; 				/* Remote syslog port */
-	int 		protocol; 			/* Protocol to use when communicating with remote host */
 	/* Configuration */
 	int		verbosity;			/* Loglevel in narc.conf */
 	int		daemonize;			/* True if running as a daemon */
@@ -103,8 +102,20 @@ struct narc_server {
 	char		*syslog_ident;			/* Syslog ident */
 	int		syslog_facility;		/* Syslog facility */
 	/* File access */
-	int 		max_attempts;			/* Max open attempts */
-	uint64_t 	retry_delay;			/* Millesecond delay between attempts */
+	int 		max_open_attempts;		/* Max open attempts */
+	uint64_t 	open_retry_delay;		/* Millesecond delay between attempts */
+	/* Server connection */
+	char		*host; 				/* Remote syslog host */
+	int 		port; 				/* Remote syslog port */
+	int 		protocol; 			/* Protocol to use when communicating with remote host */
+	void		*client;			/* the client data pointer */
+	int 		max_connect_attempts;		/* Max connect attempts */
+	uint64_t	connect_retry_delay;		/* Millesecond delay between attempts */
+	/* Streams */
+	list		*streams;			/* Stream list */
+	char 		*stream_id; 			/* prefix all messages */
+	int 		stream_facility;		/* Syslog stream facility */
+	int 		stream_priority;		/* Syslog stream priority */
 };
 
 /*-----------------------------------------------------------------------------
@@ -117,6 +128,7 @@ extern struct narc_server	server;
  * Functions prototypes
  *----------------------------------------------------------------------------*/
 /* Core functions and callbacks */
+void	handle_message(char *id, char *message);
 void	narc_out_of_memory_handler(size_t allocation_size);
 int	main(int argc, char **argv);
 void	init_server_config(void);

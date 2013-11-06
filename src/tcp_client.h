@@ -43,6 +43,7 @@ typedef struct {
 	int 		state;		/* connection state */
 	uv_tcp_t 	*socket;	/* tcp socket */
 	uv_stream_t	*stream;	/* connection stream */
+	int 		attempts;	/* connection attempts */
 } narc_tcp_client;
 
 /*-----------------------------------------------------------------------------
@@ -51,9 +52,11 @@ typedef struct {
 
 /* watchers */
 void	start_tcp_connect(void);
+void	start_tcp_read(uv_stream_t *stream);
 
 /* api */
 void	init_tcp_client(void);
 void 	submit_tcp_message(char *message);
+void	start_tcp_connect_timer(void);
 
 #endif

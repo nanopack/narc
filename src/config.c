@@ -57,6 +57,21 @@ static struct {
 	{NULL, 0}
 };
 
+static struct {
+	const char	*name;
+	const int 	value;
+} validSyslogPriorities[] = {
+	{"emergency",	LOG_EMERG},
+	{"alert",	LOG_ALERT},
+	{"critical",	LOG_CRIT},
+	{"error",	LOG_ERR},
+	{"warning",	LOG_WARNING},
+	{"notice",	LOG_NOTICE},
+	{"info",	LOG_INFO},
+	{"debug",	LOG_DEBUG},
+	{NULL, 0}
+};
+
 /*-----------------------------------------------------------------------------
  * Config file parsing
  *----------------------------------------------------------------------------*/
@@ -171,13 +186,45 @@ load_server_config_from_string(char *config)
 				err = "Invalid protocol. Must be either udp or tcp";
 				goto loaderr;
 			}
-		} else if (!strcasecmp(argv[0], "max-attempts") && argc == 2) {
-			server.max_attempts = atoi(argv[1]);
-		} else if (!strcasecmp(argv[0], "retry-delay") && argc == 2) {
-			server.retry_delay = atoll(argv[1]);
-		} else if (!strcasecmp(argv[0], "identifier") && argc == 2) {
-			zfree(server.identifier);
-			server.identifier = zstrdup(argv[1]);
+		} else if (!strcasecmp(argv[0], "max-connect-attempts") && argc == 2) {
+			server.max_connect_attempts = atoi(argv[1]);
+		} else if (!strcasecmp(argv[0], "connect-retry-delay") && argc == 2) {
+			server.connect_retry_delay = atoll(argv[1]);
+		} else if (!strcasecmp(argv[0], "max-open-attempts") && argc == 2) {
+			server.max_open_attempts = atoi(argv[1]);
+		} else if (!strcasecmp(argv[0], "open-retry-delay") && argc == 2) {
+			server.open_retry_delay = atoll(argv[1]);
+		} else if (!strcasecmp(argv[0], "stream-id") && argc == 2) {
+			zfree(server.stream_id);
+			server.stream_id = zstrdup(argv[1]);
+		} else if (!strcasecmp(argv[0], "stream-facility") && argc == 2) {
+			int i;
+
+			for (i = 0; validSyslogFacilities[i].name; i++) {
+				if (!strcasecmp(validSyslogFacilities[i].name, argv[1])) {
+					server.stream_facility = validSyslogFacilities[i].value;
+					break;
+				}
+			}
+
+			if (!validSyslogFacilities[i].name) {
+				err = "Invalid stream facility. Must be one of 'user' or between 'local0-local7'";
+				goto loaderr;
+			}
+		} else if (!strcasecmp(argv[0], "stream-priority") && argc == 2) {
+			int i;
+
+			for (i = 0; validSyslogPriorities[i].name; i++) {
+				if (!strcasecmp(validSyslogPriorities[i].name, argv[1])) {
+					server.stream_priority = validSyslogPriorities[i].value;
+					break;
+				}
+			}
+
+			if (!validSyslogPriorities[i].name) {
+				err = "Invalid stream priority. Must be one of: 'emergency', 'alert', 'critical', 'error', 'warning', 'info', 'notice', or 'debug'";
+				goto loaderr;
+			}
 		} else if (!strcasecmp(argv[0],"stream") && argc == 3) {
 			char *id = sdsdup(argv[1]);
 			char *file = sdsdup(argv[2]);

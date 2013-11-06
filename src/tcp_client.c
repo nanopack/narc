@@ -49,9 +49,10 @@ narc_tcp_client
 {
 	narc_tcp_client *client = (narc_tcp_client *)zmalloc(sizeof(narc_tcp_client));
 
-	client->state  = NARC_TCP_INITIALIZED;
-	client->socket = NULL;
-	client->stream = NULL;
+	client->state    = NARC_TCP_INITIALIZED;
+	client->socket   = NULL;
+	client->stream   = NULL;
+	client->attempts = 0;
 
 	return client;
 }
@@ -69,7 +70,31 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 {
 	narc_tcp_client *client = server.client;
 
-	client->stream = connection->handle;
+	if (status == -1) {
+		narc_log(NARC_WARNING, "Error connecting to %s:%d (%d/%d)", 
+			server.host, 
+			server.port,
+			client->attempts,
+			server.max_connect_attempts);
+
+		if (client->attempts == server.max_connect_attempts) {
+			narc_log(NARC_WARNING, "Reached max connect attempts: %s:%d", 
+				server.host, 
+				server.port);
+			exit(1);
+		} else
+			start_tcp_connect_timer();
+
+		zfree(client->socket);
+	} else {
+		narc_log(NARC_NOTICE, "Connection established: %s:%d", server.host, server.port);
+
+		client->stream   = (uv_stream_t *)connection->handle;
+		client->state    = NARC_TCP_ESTABLISHED;
+		client->attempts = 0;
+
+		start_tcp_read(client->stream);
+	}
 
 	zfree(connection);
 }
@@ -78,6 +103,39 @@ void
 handle_tcp_write(uv_write_t* req, int status)
 {
 	free_write_req(req);
+}
+
+uv_buf_t 
+handle_tcp_read_alloc_buffer(uv_handle_t* handle, size_t size)
+{
+	return uv_buf_init(zmalloc(size), size);
+}
+
+void
+handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
+{
+	if (nread >= 0)
+		narc_log(NARC_WARNING, "server responded unexpectedly: %s", buf.base);
+
+	else {
+		narc_log(NARC_WARNING, "Connection dropped: %s:%d, attempting to re-connect", 
+			server.host,
+			server.port);
+		
+		narc_tcp_client *client = (narc_tcp_client *)server.client;
+		client->state = NARC_TCP_INITIALIZED;
+
+		start_tcp_connect();
+	}
+
+	zfree(buf.base);
+}
+
+void
+handle_tcp_connect_timeout(uv_timer_t* timer, int status)
+{
+	start_tcp_connect();
+	zfree(timer);
 }
 
 /*=============================== Watchers ================================== */
@@ -94,9 +152,24 @@ start_tcp_connect(void)
 	struct sockaddr_in dest = uv_ip4_addr(server.host, server.port);
 
 	uv_connect_t *connect = zmalloc(sizeof(uv_connect_t));
-	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK)
+	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK) {
 		client->socket = socket;
+		client->attempts += 1;
+	}
+}
 
+void
+start_tcp_read(uv_stream_t *stream)
+{
+	uv_read_start(stream, handle_tcp_read_alloc_buffer, handle_tcp_read);
+}
+
+void
+start_tcp_connect_timer(void)
+{
+	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	if (uv_timer_init(server.loop, timer) == UV_OK)
+		uv_timer_start(timer, handle_tcp_connect_timeout, server.connect_retry_delay, 0);
 }
 
 /*================================== API ==================================== */
@@ -114,7 +187,7 @@ submit_tcp_message(char *message)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
 
-	if ( ! tcp_client_established(client)) {
+	if ( ! tcp_client_established(client) ) {
 		sdsfree(message);
 		return;
 	}
@@ -126,4 +199,3 @@ submit_tcp_message(char *message)
 		req->data = (void *)message;
 
 }
-

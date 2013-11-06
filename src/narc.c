@@ -100,6 +100,23 @@ narc_log(int level, const char *fmt, ...)
 	narc_log_raw(level,msg);
 }
 
+void
+handle_message(char *id, char *body)
+{
+	struct timeval tv;
+	char buf[64];
+	char *message;
+
+	gettimeofday(&tv,NULL);
+	strftime(buf,sizeof(buf),"%b %d %T",localtime(&tv.tv_sec));
+
+	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
+				server.stream_facility, server.stream_priority,
+				buf, server.stream_id, id, body);
+
+	submit_tcp_message(message);
+}
+
 /*=========================== Server initialization ========================= */
 
 void
@@ -110,15 +127,19 @@ init_server_config(void)
 	server.host = zstrdup(NARC_DEFAULT_HOST);
 	server.port = NARC_DEFAULT_PORT;
 	server.protocol = NARC_DEFAULT_PROTO;
-	server.identifier = zstrdup(NARC_DEFAULT_IDENTIFIER);
+	server.stream_id = zstrdup(NARC_DEFAULT_STREAM_ID);
+	server.stream_facility = NARC_DEFAULT_STREAM_FACILITY;
+	server.stream_priority = NARC_DEFAULT_STREAM_PRIORITY;
 	server.verbosity = NARC_DEFAULT_VERBOSITY;
 	server.daemonize = NARC_DEFAULT_DAEMONIZE;
 	server.logfile = zstrdup(NARC_DEFAULT_LOGFILE);
 	server.syslog_enabled = NARC_DEFAULT_SYSLOG_ENABLED;
 	server.syslog_ident = zstrdup(NARC_DEFAULT_SYSLOG_IDENT);
 	server.syslog_facility = LOG_LOCAL0;
-	server.max_attempts = NARC_DEFAULT_ATTEMPTS;
-	server.retry_delay = NARC_DEFAULT_DELAY;
+	server.max_open_attempts = NARC_DEFAULT_OPEN_ATTEMPTS;
+	server.open_retry_delay = NARC_DEFAULT_OPEN_DELAY;
+	server.max_connect_attempts = NARC_DEFAULT_CONNECT_ATTEMPTS;
+	server.connect_retry_delay = NARC_DEFAULT_CONNECT_DELAY;
 	server.streams = listCreate();
 }
 
@@ -139,7 +160,19 @@ init_server(void)
 
 	listReleaseIterator(iter);
 
-	init_tcp_client();
+	switch (server.protocol) {
+		case NARC_PROTO_UDP :
+			narc_log(NARC_WARNING, "udp is not yet implemented");
+			exit(1);
+			break;
+		case NARC_PROTO_TCP :
+			init_tcp_client();
+			break;
+		case NARC_PROTO_SYSLOG :
+			narc_log(NARC_WARNING, "syslog is not yet implemented");
+			exit(1);
+			break;
+	}
 }
 
 /* =================================== Main! ================================ */
