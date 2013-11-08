@@ -25,8 +25,16 @@ WARN=-Wall
 OPT=$(OPTIMIZATION)
 
 PREFIX?=/usr/local
-INSTALL_BIN=$(PREFIX)/bin
-INSTALL=install
+ifdef DESTDIR
+	INSTALL_BIN=$(DESTDIR)$(PREFIX)/bin
+else
+	INSTALL_BIN=$(PREFIX)/bin
+endif
+ifdef BSD_INSTALL_PROGRAM
+	INSTALL=$(BSD_INSTALL_PROGRAM)
+else
+	INSTALL=install
+endif
 
 # Default allocator
 ifeq ($(uname_S),Linux)
