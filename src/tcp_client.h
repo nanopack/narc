@@ -51,7 +51,8 @@ typedef struct {
  *----------------------------------------------------------------------------*/
 
 /* watchers */
-void	start_tcp_connect(void);
+void	start_resolve(void);
+void	start_tcp_connect(struct addrinfo *res);
 void	start_tcp_read(uv_stream_t *stream);
 
 /* api */

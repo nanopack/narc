@@ -177,10 +177,10 @@ handle_file_read(uv_fs_t *req)
 					if (stream->missed_count > 0)
 					{
 						char str[81];
-						sprintf(&str, "Missed %d messages", stream->missed_count);
+						sprintf(&str[0], "Missed %d messages %c", stream->missed_count, '\0');
 						stream->rate_count++;
 						start_rate_limit_timer(stream);
-						handle_message(stream->id, &str);
+						handle_message(stream->id, &str[0]);
 						stream->missed_count = 0;
 					}
 					stream->rate_count++;

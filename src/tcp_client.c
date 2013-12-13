@@ -125,7 +125,7 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 		narc_tcp_client *client = (narc_tcp_client *)server.client;
 		client->state = NARC_TCP_INITIALIZED;
 
-		start_tcp_connect();
+		start_resolve();
 	}
 
 	zfree(buf.base);
@@ -134,14 +134,35 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 void
 handle_tcp_connect_timeout(uv_timer_t* timer, int status)
 {
-	start_tcp_connect();
+	start_resolve();
 	zfree(timer);
+}
+
+void
+handle_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+{
+	if (status >= 0)
+		start_tcp_connect(res);
 }
 
 /*=============================== Watchers ================================== */
 
 void
-start_tcp_connect(void)
+start_resolve(void)
+{
+	uv_getaddrinfo_t resolver;
+
+	struct addrinfo hints;
+	hints.ai_family = PF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = 0;
+
+	uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
+}
+
+void
+start_tcp_connect(struct addrinfo *res)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
 	uv_tcp_t 	*socket = (uv_tcp_t *)zmalloc(sizeof(uv_tcp_t));
@@ -149,13 +170,14 @@ start_tcp_connect(void)
 	uv_tcp_init(server.loop, socket);
 	uv_tcp_keepalive(socket, 1, 60);
 
-	struct sockaddr_in dest = uv_ip4_addr(server.host, server.port);
+	struct sockaddr_in dest = uv_ip4_addr(res->ai_addr->sa_data, server.port);
 
 	uv_connect_t *connect = zmalloc(sizeof(uv_connect_t));
 	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK) {
 		client->socket = socket;
 		client->attempts += 1;
 	}
+	uv_freeaddrinfo(res);
 }
 
 void
@@ -179,7 +201,7 @@ init_tcp_client(void)
 {
 	server.client = (void *)new_tcp_client();
 
-	start_tcp_connect();
+	start_resolve();
 }
 
 void
