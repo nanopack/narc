@@ -172,7 +172,25 @@ handle_file_read(uv_fs_t *req)
 		for (int i = 0; i < req->result; i++) {
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
 				stream->line[stream->index] = '\0';
-				handle_message(stream->id, stream->line);
+				if (stream->rate_count < server.rate_limit)
+				{
+					if (stream->missed_count > 0)
+					{
+						char str[81];
+						sprintf(&str, "Missed %d messages", stream->missed_count);
+						stream->rate_count++;
+						start_rate_limit_timer(stream);
+						handle_message(stream->id, &str);
+						stream->missed_count = 0;
+					}
+					stream->rate_count++;
+					start_rate_limit_timer(stream);
+					handle_message(stream->id, stream->line);
+				}
+				else
+				{
+					stream->missed_count++;
+				}
 				init_line(stream->line);
 				stream->index = 0;
 			} else {
@@ -189,6 +207,16 @@ handle_file_read(uv_fs_t *req)
 
 	uv_fs_req_cleanup(req);
 	zfree(req);
+}
+
+void
+handle_rate_limit_timer(uv_timer_t* timer, int status)
+{
+	narc_stream *stream = timer->data;
+	lock_stream(stream);
+	stream->rate_count--;
+	unlock_stream(stream);
+	zfree(timer);
 }
 
 /*================================= Watchers =================================== */
@@ -244,19 +272,31 @@ start_file_read(narc_stream *stream)
 	}
 }
 
+void
+start_rate_limit_timer(narc_stream *stream)
+{
+	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	if (uv_timer_init(server.loop, timer) == UV_OK) {
+		if (uv_timer_start(timer, handle_rate_limit_timer, server.rate_time, 0) == UV_OK)
+			timer->data = (void *)stream;
+	}
+}
+
 /*================================= API =================================== */
 
 narc_stream
 *new_stream(char *id, char *file)
 {
 	narc_stream *stream = zmalloc(sizeof(narc_stream));
-
-	stream->id       = id;
-	stream->file     = file;
-	stream->attempts = 0;
-	stream->size     = -1;
-	stream->index    = 0;
-	stream->lock     = NARC_STREAM_UNLOCKED;
+	
+	stream->id           = id;
+	stream->file         = file;
+	stream->attempts     = 0;
+	stream->size         = -1;
+	stream->index        = 0;
+	stream->lock         = NARC_STREAM_UNLOCKED;
+	stream->rate_count   = 0;
+	stream->missed_count = 0;
 
 	return stream;
 }

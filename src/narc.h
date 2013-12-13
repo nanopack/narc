@@ -66,6 +66,8 @@
 #define NARC_DEFAULT_OPEN_DELAY		3000
 #define NARC_DEFAULT_CONNECT_ATTEMPTS	2
 #define NARC_DEFAULT_CONNECT_DELAY	3000
+#define NARC_DEFAULT_RATE_LIMIT		100
+#define NARC_DEFAULT_RATE_TIME		10
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -116,6 +118,8 @@ struct narc_server {
 	char 		*stream_id; 			/* prefix all messages */
 	int 		stream_facility;		/* Syslog stream facility */
 	int 		stream_priority;		/* Syslog stream priority */
+	int		rate_limit;			/* log rate limit */
+	int		rate_time;			/* log rate time */
 };
 
 /*-----------------------------------------------------------------------------

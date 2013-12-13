@@ -230,7 +230,11 @@ load_server_config_from_string(char *config)
 			char *file = sdsdup(argv[2]);
 			narc_stream *stream = new_stream(id, file);
 			listAddNodeTail(server.streams, (void *)stream);
-		} else {
+		} else if (!strcasecmp(argv[0],"rate-limit") && argc == 2) {
+			server.rate_limit = atoi(argv[1]);
+		} else if (!strcasecmp(argv[0],"rate-time") && argc == 2) {
+			server.rate_time = atoi(argv[1]);
+		}  else {
 			err = "Bad directive or wrong number of arguments"; goto loaderr;
 		}
 		sdsfreesplitres(argv,argc);

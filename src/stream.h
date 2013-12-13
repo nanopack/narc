@@ -45,6 +45,8 @@ typedef struct {
 	int 	index;				/* the line character index */
 	int 	lock;				/* read lock to prevent resetting buffers */
 	int 	attempts;			/* open attempts */
+	int	rate_count;			/*  */
+	int	missed_count;			/*  */
 } narc_stream;
 
 /*-----------------------------------------------------------------------------
@@ -57,6 +59,7 @@ void	start_file_watcher(narc_stream *stream);
 void	start_file_open_timer(narc_stream *stream);
 void	start_file_stat(narc_stream *stream);
 void	start_file_read(narc_stream *stream);
+void	start_rate_limit_timer(narc_stream *stream);
 
 /* api */
 narc_stream 	*new_stream(char *id, char *file);

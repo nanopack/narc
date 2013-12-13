@@ -140,6 +140,8 @@ init_server_config(void)
 	server.open_retry_delay = NARC_DEFAULT_OPEN_DELAY;
 	server.max_connect_attempts = NARC_DEFAULT_CONNECT_ATTEMPTS;
 	server.connect_retry_delay = NARC_DEFAULT_CONNECT_DELAY;
+	server.rate_limit = NARC_DEFAULT_RATE_LIMIT;
+	server.rate_time = NARC_DEFAULT_RATE_TIME;
 	server.streams = listCreate();
 }
 
