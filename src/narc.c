@@ -132,7 +132,7 @@ calculate_time(uv_timer_t* handle, int status)
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
 	strftime(server.time,sizeof(server.time),"%b %d %T",localtime(&tv.tv_sec));
-	narc_log(NARC_WARNING, "Calculated time");
+	narc_log(NARC_WARNING, "Calculated time %s",server.time);
 }
 
 void
