@@ -150,6 +150,7 @@ init_udp_client(void)
 void
 submit_udp_message(char *message)
 {
+	narc_udp_client *client = (narc_udp_client *)server.client;
 	if(client->state == NARC_UDP_BOUND){
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
 		uv_buf_t buf    = uv_buf_init(message, strlen(message));
