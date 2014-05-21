@@ -101,7 +101,6 @@ void
 handle_udp_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 {
 	if (status >= 0){
-		narc_log(NARC_WARNING, "server resolved: %s", server.host);
 		start_udp_bind(res);
 	}else{
 		narc_log(NARC_WARNING, "server did not resolve: %s", server.host);
@@ -130,7 +129,7 @@ start_udp_bind(struct addrinfo *res)
 	narc_udp_client *client = (narc_udp_client *)server.client;
 
 	client->send_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
-	narc_log(NARC_WARNING, "server resolved: '%s' to %s:%d", server.host, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
+	narc_log(NARC_WARNING, "server resolved: '%s' to %s:%d", server.host, inet_ntoa(res->ai_addr->sa_data),ntohs(client->send_addr.sin_port));
 
 	uv_udp_init(server.loop, &client->socket);
 
