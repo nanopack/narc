@@ -105,11 +105,9 @@ void
 handle_message(char *id, char *body)
 {
 	char *message;
-	narc_log(NARC_WARNING, "Making message");
 	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
 				server.stream_facility, server.stream_priority,
 				server.time, server.stream_id, id, body);
-	narc_log(NARC_WARNING, "Finished message");
 
 	switch (server.protocol) {
 		case NARC_PROTO_UDP :

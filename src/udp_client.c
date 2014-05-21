@@ -85,7 +85,6 @@ handle_udp_send(uv_udp_send_t* req, int status)
 		narc_log(NARC_WARNING, "Udp send error: %s", 
 			uv_err_name(uv_last_error(server.loop)));
 	}
-	narc_log(NARC_WARNING, "packet was sent");
 	sdsfree(req->data);
 	free(req);
 }
@@ -166,7 +165,6 @@ submit_udp_message(char *message)
 		// we make the packet one character less so that we aren't sending the newline character
 		message[strlen(message)-1] = '\0';
 		
-		narc_log(NARC_WARNING, "server sending: '%s' to %s:%d", message, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
 
 		uv_buf_t buf    = uv_buf_init(message, strlen(message));
