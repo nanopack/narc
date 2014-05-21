@@ -257,13 +257,6 @@ usage(void)
 }
 
 void
-narc_out_of_memory_handler(size_t allocation_size)
-{
-	narc_log(NARC_WARNING, "Out Of Memory allocating %zu bytes!", allocation_size);
-	narcPanic("Narc aborting for OUT OF MEMORY");
-}
-
-void
 narc_set_proc_title(char *title)
 {
 #ifdef USE_SETPROCTITLE
@@ -284,8 +277,6 @@ int
 main(int argc, char **argv)
 {
 	setlocale(LC_COLLATE,"");
-	malloc_enable_thread_safeness();
-	malloc_set_oom_handler(narc_out_of_memory_handler);
 	init_server_config();
 
 	if (argc >= 2) {
