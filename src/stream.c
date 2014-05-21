@@ -126,6 +126,8 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 
 	narc_stream *stream = handle->data;
 
+	narc_log(NARC_WARNING, "File changed: %s", stream->file);
+
 	if (events == UV_CHANGE)
 		start_file_stat(stream);
 
@@ -271,6 +273,8 @@ start_file_read(narc_stream *stream)
 		narc_log(NARC_WARNING, "file locked %s",stream->file);
 		return;
 	}
+
+	narc_log(NARC_WARNING, "file not locked %s",stream->file);
 
 	init_buffer(stream->buffer);
 
