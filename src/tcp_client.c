@@ -37,7 +37,7 @@
 /*============================ Utility functions ============================ */
 
 void 
-free_write_req(uv_write_t *req) 
+free_tcp_write_req(uv_write_t *req) 
 {
 	sdsfree((char *)req->data);
 	zfree(req->bufs);
@@ -102,7 +102,7 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 void
 handle_tcp_write(uv_write_t* req, int status)
 {
-	free_write_req(req);
+	free_tcp_write_req(req);
 }
 
 uv_buf_t 

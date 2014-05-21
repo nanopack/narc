@@ -112,7 +112,7 @@ QUIET_INSTALL = @printf '    %b %b\n' $(LINKCOLOR)INSTALL$(ENDCOLOR) $(BINCOLOR)
 endif
 
 NARC_NAME=narc
-NARC_OBJ=adlist.o config.o crc16.o crc64.o debug.o endianconv.o narc.o release.o sds.o stream.o setproctitle.o sha1.o tcp_client.o util.o zmalloc.o
+NARC_OBJ=adlist.o config.o crc16.o crc64.o debug.o endianconv.o narc.o release.o sds.o stream.o setproctitle.o sha1.o udp_client.o tcp_client.o util.o zmalloc.o
 
 all: $(NARC_NAME)
 

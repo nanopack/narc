@@ -27,6 +27,7 @@
 #include "stream.h" 
 #include "config.h"
 #include "tcp_client.h"
+#include "udp_client.h"
 
 #include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
@@ -103,18 +104,39 @@ narc_log(int level, const char *fmt, ...)
 void
 handle_message(char *id, char *body)
 {
-	struct timeval tv;
-	char buf[64];
 	char *message;
-
-	gettimeofday(&tv,NULL);
-	strftime(buf,sizeof(buf),"%b %d %T",localtime(&tv.tv_sec));
-
 	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
 				server.stream_facility, server.stream_priority,
-				buf, server.stream_id, id, body);
+				server.time, server.stream_id, id, body);
 
-	submit_tcp_message(message);
+	switch (server.protocol) {
+		case NARC_PROTO_UDP :
+			submit_udp_message(message);
+			break;
+		case NARC_PROTO_TCP :
+			submit_tcp_message(message);
+			break;
+		case NARC_PROTO_SYSLOG :
+			narc_log(NARC_WARNING, "syslog is not yet implemented");
+			exit(1);
+			break;
+	}
+}
+
+void
+calculate_time(uv_timer_t* handle, int status)
+{
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	strftime(server.time,sizeof(server.time),"%b %d %T",localtime(&tv.tv_sec));
+}
+
+void
+start_timer_loop()
+{
+	calculate_time(NULL,1);
+	uv_timer_init(server.loop,&server.time_timer);
+	uv_timer_start(&server.time_timer,calculate_time,500,1);
 }
 
 /*=========================== Server initialization ========================= */
@@ -164,8 +186,7 @@ init_server(void)
 
 	switch (server.protocol) {
 		case NARC_PROTO_UDP :
-			narc_log(NARC_WARNING, "udp is not yet implemented");
-			exit(1);
+			init_udp_client();
 			break;
 		case NARC_PROTO_TCP :
 			init_tcp_client();
@@ -305,6 +326,8 @@ main(int argc, char **argv)
 	} else {
 		narc_log(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
 	}
+
+	start_timer_loop();
 
 	if (server.daemonize) daemonize();
 	init_server();

@@ -92,34 +92,43 @@
 
 struct narc_server {
 	/* General */
-	char		*pidfile;			/* PID file path */
-	int		arch_bits;			/* 32 or 64 depending on sizeof(long) */
-	uv_loop_t	*loop;				/* Event loop */
+	char		*pidfile;				/* PID file path */
+	int			arch_bits;				/* 32 or 64 depending on sizeof(long) */
+	uv_loop_t	*loop;					/* Event loop */
+	
 	/* Configuration */
-	int		verbosity;			/* Loglevel in narc.conf */
-	int		daemonize;			/* True if running as a daemon */
+	int			verbosity;				/* Loglevel in narc.conf */
+	int			daemonize;				/* True if running as a daemon */
+	
 	/* Logging */
-	char		*logfile;			/* Path of log file */
-	int		syslog_enabled;			/* Is syslog enabled? */
+	char		*logfile;				/* Path of log file */
+	int			syslog_enabled;			/* Is syslog enabled? */
 	char		*syslog_ident;			/* Syslog ident */
-	int		syslog_facility;		/* Syslog facility */
+	int			syslog_facility;		/* Syslog facility */
+	
 	/* File access */
 	int 		max_open_attempts;		/* Max open attempts */
 	uint64_t 	open_retry_delay;		/* Millesecond delay between attempts */
+	
 	/* Server connection */
-	char		*host; 				/* Remote syslog host */
-	int 		port; 				/* Remote syslog port */
-	int 		protocol; 			/* Protocol to use when communicating with remote host */
-	void		*client;			/* the client data pointer */
-	int 		max_connect_attempts;		/* Max connect attempts */
-	uint64_t	connect_retry_delay;		/* Millesecond delay between attempts */
+	char		*host; 					/* Remote syslog host */
+	int 		port; 					/* Remote syslog port */
+	int 		protocol; 				/* Protocol to use when communicating with remote host */
+	void		*client;				/* the client data pointer */
+	int 		max_connect_attempts;	/* Max connect attempts */
+	uint64_t	connect_retry_delay;	/* Millesecond delay between attempts */
+
 	/* Streams */
-	list		*streams;			/* Stream list */
+	list		*streams;				/* Stream list */
 	char 		*stream_id; 			/* prefix all messages */
 	int 		stream_facility;		/* Syslog stream facility */
 	int 		stream_priority;		/* Syslog stream priority */
-	int		rate_limit;			/* log rate limit */
-	int		rate_time;			/* log rate time */
+	int			rate_limit;				/* log rate limit */
+	int			rate_time;				/* log rate time */
+
+	/* Time of day */
+	uv_timer_t 	time_timer;				/* runs ever hald second to update the current time */
+	char		time[16];				/* current time of day */
 };
 
 /*-----------------------------------------------------------------------------

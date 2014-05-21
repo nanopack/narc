@@ -17,7 +17,7 @@ narc.o: narc.c narc.h solarisfixes.h adlist.h version.h \
  ../deps/libuv/include/uv.h ../deps/libuv/include/uv-private/uv-unix.h \
  ../deps/libuv/include/uv-private/ngx-queue.h \
  ../deps/libuv/include/uv-private/uv-sunos.h stream.h config.h \
- tcp_client.h sds.h zmalloc.h util.h
+ tcp_client.h sds.h zmalloc.h util.h udp_client.h
 release.o: release.c release.h version.h crc64.h
 sds.o: sds.c sds.h zmalloc.h
 setproctitle.o: setproctitle.c
@@ -26,7 +26,11 @@ stream.o: stream.c narc.h solarisfixes.h adlist.h version.h \
  ../deps/libuv/include/uv.h ../deps/libuv/include/uv-private/uv-unix.h \
  ../deps/libuv/include/uv-private/ngx-queue.h \
  ../deps/libuv/include/uv-private/uv-sunos.h stream.h zmalloc.h sds.h \
- tcp_client.h
+ tcp_client.h udp_client.h
+ udp_client.o: udp_client.c narc.h solarisfixes.h adlist.h version.h \
+ ../deps/libuv/include/uv.h ../deps/libuv/include/uv-private/uv-unix.h \
+ ../deps/libuv/include/uv-private/ngx-queue.h \
+ ../deps/libuv/include/uv-private/uv-sunos.h sds.h zmalloc.h
 tcp_client.o: tcp_client.c narc.h solarisfixes.h adlist.h version.h \
  ../deps/libuv/include/uv.h ../deps/libuv/include/uv-private/uv-unix.h \
  ../deps/libuv/include/uv-private/ngx-queue.h \
