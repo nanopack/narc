@@ -188,20 +188,20 @@ init_server(void)
 
 	listReleaseIterator(iter);
 
-	switch (server.protocol) {
-		case NARC_PROTO_UDP :
-			narc_log(NARC_WARNING, "udp is implemented");
-			init_udp_client();
-			break;
-		case NARC_PROTO_TCP :
-			narc_log(NARC_WARNING, "tcp is implemented");
-			init_tcp_client();
-			break;
-		case NARC_PROTO_SYSLOG :
-			narc_log(NARC_WARNING, "syslog is not yet implemented");
-			exit(1);
-			break;
-	}
+	// switch (server.protocol) {
+	// 	case NARC_PROTO_UDP :
+	// 		narc_log(NARC_WARNING, "udp is implemented");
+	// 		init_udp_client();
+	// 		break;
+	// 	case NARC_PROTO_TCP :
+	// 		narc_log(NARC_WARNING, "tcp is implemented");
+	// 		init_tcp_client();
+	// 		break;
+	// 	case NARC_PROTO_SYSLOG :
+	// 		narc_log(NARC_WARNING, "syslog is not yet implemented");
+	// 		exit(1);
+	// 		break;
+	// }
 }
 
 /* =================================== Main! ================================ */
@@ -331,11 +331,10 @@ main(int argc, char **argv)
 	}
 
 	if (server.daemonize) daemonize();
-	// init_server();
+	init_server();
 	if (server.daemonize) create_pid_file();
 	narc_set_proc_title(argv[0]);
 
-	server.loop = uv_default_loop();
 	start_timer_loop();
 
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
