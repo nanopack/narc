@@ -254,6 +254,7 @@ void
 start_file_stat(narc_stream *stream)
 {
 	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	narc_log(NARC_WARNING, "streaming file %s",stream->file);
 	if (uv_fs_stat(server.loop, req, stream->file, handle_file_stat) == UV_OK)
 		req->data = (void *)stream;
 }
