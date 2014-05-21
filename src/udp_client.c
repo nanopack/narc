@@ -129,8 +129,9 @@ start_udp_bind(struct addrinfo *res)
 	narc_udp_client *client = (narc_udp_client *)server.client;
 	uv_udp_init(server.loop, &client->socket);
 
-	struct sockaddr_in recv_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
+	struct sockaddr_in recv_addr = uv_ip4_addr("0.0.0.0", 0);
 	uv_udp_bind(&client->socket, recv_addr, 0);
+	client->send_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
 	client->state = NARC_UDP_BOUND;
 	start_udp_read();
 
@@ -158,10 +159,8 @@ submit_udp_message(char *message)
 		uv_buf_t buf    = uv_buf_init(message, strlen(message));
 		
 		req->data = (void *)message;
-		struct sockaddr_in send_addr = uv_ip4_addr("127.0.0.1", 1234);
-		narc_log(NARC_WARNING, "sending packet: %s", message);
 		narc_udp_client *client = (narc_udp_client *)server.client;
-	    uv_udp_send(req, &client->socket, &buf, 1, send_addr, handle_udp_send);
+	    uv_udp_send(req, &client->socket, &buf, 1, client->send_addr, handle_udp_send);
 	}
 
 }
