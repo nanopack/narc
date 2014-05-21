@@ -143,16 +143,19 @@ handle_file_stat(uv_fs_t* req)
 	narc_stream *stream = req->data;
 	uv_statbuf_t *stat  = req->ptr;
 
+	// file is initially opened
 	if (stream->size < 0){
 		lseek(stream->fd, 0, SEEK_END);
 		narc_log(NARC_WARNING, "file seek #1 %s",stream->file);
 	}
 
+	// file has been truncated
 	if (stat->st_size < stream->size){
 		lseek(stream->fd, 0, SEEK_SET);
 		narc_log(NARC_WARNING, "file seek #2 %s",stream->file);
 	}
 
+	narc_log(NARC_WARNING, "file is %d bytes",stat->st_size);
 	stream->size = stat->st_size;
 
 	start_file_read(stream);
