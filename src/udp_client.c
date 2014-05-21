@@ -101,7 +101,7 @@ void
 handle_udp_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 {
 	if (status >= 0){
-		narc_log(NARC_WARNING, "server resolved: %s to %s", server.host,res->ai_addr->sa_data);
+		narc_log(NARC_WARNING, "server resolved: %s", server.host);
 		start_udp_bind(res);
 	}else{
 		narc_log(NARC_WARNING, "server did not resolve: %s", server.host);
@@ -157,7 +157,9 @@ submit_udp_message(char *message)
 	if(client->state == NARC_UDP_BOUND){
 		narc_log(NARC_WARNING, "server sending: '%s' to %s:%d", message, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
-		uv_buf_t buf    = uv_buf_init(message, strlen(message));
+
+		// we make the packet one character less so that we aren't sending the newline character
+		uv_buf_t buf    = uv_buf_init(message, strlen(message)-1);
 		
 		req->data = (void *)message;
 		narc_udp_client *client = (narc_udp_client *)server.client;
