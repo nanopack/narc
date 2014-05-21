@@ -100,7 +100,7 @@ handle_file_open(uv_fs_t *req)
 		else
 			start_file_open_timer(stream);
 	} else {
-		narc_log(NARC_NOTICE, "File opened: %s", stream->file);
+		narc_log(NARC_WARNING, "File opened: %s", stream->file);
 
 		stream->fd       = req->result;
 		stream->attempts = 0;
@@ -224,6 +224,7 @@ handle_rate_limit_timer(uv_timer_t* timer, int status)
 void
 start_file_open(narc_stream *stream)
 {
+	narc_log(NARC_WARNING, "opening file %s",stream->file);
 	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, handle_file_open) == UV_OK) {
 		req->data = (void *)stream;
