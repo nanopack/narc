@@ -214,7 +214,7 @@ handle_file_read(uv_fs_t *req)
 				}
 				char *tmp = stream->previous_line;
 				stream->previous_line = stream->current_line;
-				stream->current_line = stream->previous_line;
+				stream->current_line = tmp;
 
 				init_line(stream->current_line);
 				stream->index = 0;
