@@ -144,8 +144,12 @@ handle_tcp_connect_timeout(uv_timer_t* timer, int status)
 void
 handle_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 {
-	if (status >= 0)
+	if (status >= 0){
+		narc_log(NARC_WARNING, "server resolved: %s", server.host);
 		start_tcp_connect(res);
+	}else{
+		narc_log(NARC_WARNING, "server did not resolve: %s", server.host);
+	}
 }
 
 /*=============================== Watchers ================================== */
@@ -160,7 +164,7 @@ start_resolve(void)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = 0;
-	
+	narc_log(NARC_WARNING, "server resolving: %s", server.host);
 	uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
 }
 
