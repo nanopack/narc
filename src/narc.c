@@ -335,6 +335,7 @@ main(int argc, char **argv)
 	if (server.daemonize) create_pid_file();
 	narc_set_proc_title(argv[0]);
 
+	server.loop = uv_default_loop();
 	start_timer_loop();
 
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
