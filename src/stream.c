@@ -329,7 +329,8 @@ narc_stream
 
 	stream->current_line  = &stream->line;
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
-	bzero(&stream->line);
+	init_line(stream->current_line);
+	init_line(stream->previous_line);
 
 	return stream;
 }
