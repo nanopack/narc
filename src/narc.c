@@ -126,9 +126,11 @@ handle_message(char *id, char *body)
 void
 calculate_time(uv_timer_t* handle, int status)
 {
+	narc_log(NARC_WARNING, "Calculating time");
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
 	strftime(server.time,sizeof(server.time),"%b %d %T",localtime(&tv.tv_sec));
+	narc_log(NARC_WARNING, "Calculated time");
 }
 
 void
