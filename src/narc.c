@@ -233,10 +233,8 @@ daemonize(void)
 void
 version(void)
 {
-	printf("Narc v=%s sha=%s:%d malloc=%s bits=%d build=%llx\n",
+	printf("Narc v=%s malloc=%s bits=%d build=%llx\n",
 		NARC_VERSION,
-		narc_git_sha1(),
-		atoi(narc_git_dirty()) > 0,
 		ZMALLOC_LIB,
 		sizeof(long) == 4 ? 32 : 64,
 		(unsigned long long) narc_build_id());
