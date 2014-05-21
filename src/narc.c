@@ -235,9 +235,8 @@ daemonize(void)
 void
 version(void)
 {
-	printf("Narc v=%s malloc=%s bits=%d",
+	printf("Narc v=%s bits=%d",
 		NARC_VERSION,
-		ZMALLOC_LIB,
 		sizeof(long) == 4 ? 32 : 64);
 	exit(0);
 }
