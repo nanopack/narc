@@ -155,7 +155,7 @@ submit_udp_message(char *message)
 {
 	narc_udp_client *client = (narc_udp_client *)server.client;
 	if(client->state == NARC_UDP_BOUND){
-		narc_log(NARC_WARNING, "server sending: %s", message);
+		narc_log(NARC_WARNING, "server sending: '%s' to %s:%d", message, inet_ntoa(client->send_addr.sin_addr),inet_ntohs(client->send_addr.sin_port));
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
 		uv_buf_t buf    = uv_buf_init(message, strlen(message));
 		
