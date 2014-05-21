@@ -103,10 +103,10 @@ init_udp_client(void)
 	narc_udp_client *client = new_udp_client();
 	server.client = (void *)client;
 	
-	uv_udp_init(server.loop, client->socket);
+	uv_udp_init(server.loop, &client->socket);
 
 	struct sockaddr_in recv_addr = uv_ip4_addr("0.0.0.0", 0);
-	uv_udp_bind(client->socket, recv_addr, 0);
+	uv_udp_bind(&client->socket, recv_addr, 0);
 	start_udp_read();
 }
 
