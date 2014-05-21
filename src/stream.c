@@ -170,18 +170,35 @@ handle_file_read(uv_fs_t *req)
 	if (req->result > 0) {
 		
 		if (stream->index == 0)
-			init_line(stream->line);
+			init_line(stream->current_line);
 
 		int i;
 		for (i = 0; i < req->result; i++) {
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
-				stream->line[stream->index] = '\0';
+				stream->current_line[stream->index] = '\0';
+
+				if(strcmp(stream->current_line,stream->previous_line) == 0 ){
+					stream->repeat_count++;
+					narc_log(NARC_WARNING, "%s: got the same line as last time", stream->file);
+					init_line(stream->current_line);
+					stream->index = 0;
+					continue;
+				}else if(stream->repeat_count == 1){
+					handle_message(stream->id, stream->previous_line);
+				}else if(stream->repeat_count > 0 || stream->repeat_count == 500){
+					char str[NARC_MAX_LOGMSG_LEN + 20];
+					sprintf(&str[0], "%s Repeated %d Times\0",stream->previous_line,stream->repeat_count);
+					handle_message(stream->id, &str[0]);
+				}
+
+				stream->repeat_count = 0;
+
 				if (stream->rate_count < server.rate_limit)
 				{
 					if (stream->missed_count > 0)
 					{
 						char str[81];
-						sprintf(&str[0], "Missed %d messages %c", stream->missed_count, '\0');
+						sprintf(&str[0], "Missed %d messages\0", stream->missed_count);
 						stream->rate_count++;
 						start_rate_limit_timer(stream);
 						handle_message(stream->id, &str[0]);
@@ -189,16 +206,20 @@ handle_file_read(uv_fs_t *req)
 					}
 					stream->rate_count++;
 					start_rate_limit_timer(stream);
-					handle_message(stream->id, stream->line);
+					handle_message(stream->id, stream->current_line);
 				}
 				else
 				{
 					stream->missed_count++;
 				}
-				init_line(stream->line);
+				char *tmp = stream->previous_line;
+				stream->previous_line = stream->current_line;
+				stream->current_line = stream->previous_line;
+
+				init_line(stream->current_line);
 				stream->index = 0;
 			} else {
-				stream->line[stream->index] = stream->buffer[i];
+				stream->current_line[stream->index] = stream->buffer[i];
 				stream->index += 1;
 			}
 		}
@@ -296,14 +317,19 @@ narc_stream
 {
 	narc_stream *stream = malloc(sizeof(narc_stream));
 	
-	stream->id           = id;
-	stream->file         = file;
-	stream->attempts     = 0;
-	stream->size         = -1;
-	stream->index        = 0;
-	stream->lock         = NARC_STREAM_UNLOCKED;
-	stream->rate_count   = 0;
-	stream->missed_count = 0;
+	stream->id            = id;
+	stream->file          = file;
+	stream->attempts      = 0;
+	stream->size          = -1;
+	stream->index         = 0;
+	stream->lock          = NARC_STREAM_UNLOCKED;
+	stream->rate_count    = 0;
+	stream->missed_count  = 0;
+	stream->repeat_count  = 0;
+
+	stream->current_line  = &stream->line;
+	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
+	bzero(&stream->line);
 
 	return stream;
 }
