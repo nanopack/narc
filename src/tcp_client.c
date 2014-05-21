@@ -161,7 +161,7 @@ start_resolve(void)
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = 0;
 
-	uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
+	// uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
 }
 
 void
@@ -204,7 +204,7 @@ init_tcp_client(void)
 {
 	server.client = (void *)new_tcp_client();
 
-	// start_resolve();
+	start_resolve();
 }
 
 void
