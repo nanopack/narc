@@ -169,7 +169,8 @@ handle_file_read(uv_fs_t *req)
 		if (stream->index == 0)
 			init_line(stream->line);
 
-		for (int i = 0; i < req->result; i++) {
+		int i;
+		for (i = 0; i < req->result; i++) {
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
 				stream->line[stream->index] = '\0';
 				if (stream->rate_count < server.rate_limit)
