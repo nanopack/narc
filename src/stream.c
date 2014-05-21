@@ -141,11 +141,15 @@ handle_file_stat(uv_fs_t* req)
 	narc_stream *stream = req->data;
 	uv_statbuf_t *stat  = req->ptr;
 
-	if (stream->size < 0)
+	if (stream->size < 0){
 		lseek(stream->fd, 0, SEEK_END);
+		narc_log(NARC_WARNING, "file seek #1 %s",stream->file);
+	}
 
-	if (stat->st_size < stream->size)
+	if (stat->st_size < stream->size){
 		lseek(stream->fd, 0, SEEK_SET);
+		narc_log(NARC_WARNING, "file seek #2 %s",stream->file);
+	}
 
 	stream->size = stat->st_size;
 
@@ -262,8 +266,10 @@ start_file_stat(narc_stream *stream)
 void
 start_file_read(narc_stream *stream)
 {
-	if (stream_locked(stream))
+	if (stream_locked(stream)){
+		narc_log(NARC_WARNING, "file locked %s",stream->file);
 		return;
+	}
 
 	init_buffer(stream->buffer);
 
