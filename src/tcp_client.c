@@ -71,6 +71,8 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 	narc_tcp_client *client = server.client;
 
 	if (status == -1) {
+		uv_close((uv_handle_t *)client->socket, (uv_close_cb)zfree);
+		client->socket = NULL;
 		narc_log(NARC_WARNING, "Error connecting to %s:%d (%d/%d)", 
 			server.host, 
 			server.port,
@@ -85,7 +87,6 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 		} else
 			start_tcp_connect_timer();
 
-		zfree(client->socket);
 	} else {
 		narc_log(NARC_NOTICE, "Connection established: %s:%d", server.host, server.port);
 
@@ -123,6 +124,8 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 			server.port);
 		
 		narc_tcp_client *client = (narc_tcp_client *)server.client;
+		uv_close((uv_handle_t *)client->socket, (uv_close_cb)zfree);
+		client->socket = NULL;
 		client->state = NARC_TCP_INITIALIZED;
 
 		start_resolve();
