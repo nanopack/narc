@@ -140,7 +140,7 @@ start_timer_loop()
 {
 	calculate_time(NULL,1);
 	uv_timer_init(server.loop,&server.time_timer);
-	uv_timer_start(&server.time_timer,calculate_time,500,1);
+	uv_timer_start(&server.time_timer,calculate_time,500,500);
 }
 
 /*=========================== Server initialization ========================= */
