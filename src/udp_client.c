@@ -131,6 +131,7 @@ start_udp_bind(struct addrinfo *res)
 
 	struct sockaddr_in recv_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
 	uv_udp_bind(&client->socket, recv_addr, 0);
+	client->state = NARC_UDP_BOUND;
 	start_udp_read();
 
 	uv_freeaddrinfo(res);
