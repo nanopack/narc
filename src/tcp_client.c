@@ -204,7 +204,7 @@ init_tcp_client(void)
 {
 	server.client = (void *)new_tcp_client();
 
-	start_resolve();
+	// start_resolve();
 }
 
 void
