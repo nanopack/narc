@@ -42,7 +42,7 @@ typedef struct {
 	int 		state;		/* connection state */
 	uv_udp_t 	socket;	/* udp socket */
 	uv_getaddrinfo_t resolver;
-	struct sockaddr send_addr;
+	struct sockaddr_in send_addr;
 } narc_udp_client;
 
 /*-----------------------------------------------------------------------------
