@@ -157,7 +157,7 @@ submit_udp_message(char *message)
 	if(client->state == NARC_UDP_BOUND){
 
 		// we make the packet one character less so that we aren't sending the newline character
-		message[strlen(message)] = '\0';
+		message[strlen(message)-1] = '\0';
 		
 		narc_log(NARC_WARNING, "server sending: '%s' to %s:%d", message, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
