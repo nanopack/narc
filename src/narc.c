@@ -331,11 +331,11 @@ main(int argc, char **argv)
 	}
 
 	if (server.daemonize) daemonize();
-	init_server();
+	// init_server();
 	if (server.daemonize) create_pid_file();
 	narc_set_proc_title(argv[0]);
 
-	// start_timer_loop();
+	start_timer_loop();
 
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
 	narc_log(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
