@@ -119,7 +119,7 @@ start_udp_resolve(void)
 	hints.ai_flags = 0;
 	narc_log(NARC_WARNING, "server resolving: %s", server.host);
 	narc_udp_client *client = (narc_udp_client *)server.client;
-	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, "80", &hints);
+	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, server.port, &hints);
 }
 
 void
