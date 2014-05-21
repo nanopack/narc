@@ -327,7 +327,7 @@ narc_stream
 	stream->missed_count  = 0;
 	stream->repeat_count  = 0;
 
-	stream->current_line  = &stream->line;
+	stream->current_line  = &stream->line[0];
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
 	init_line(stream->current_line);
 	init_line(stream->previous_line);
