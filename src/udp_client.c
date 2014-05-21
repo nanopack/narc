@@ -101,7 +101,7 @@ void
 handle_udp_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 {
 	if (status >= 0){
-		narc_log(NARC_WARNING, "server resolved: %s", server.host);
+		narc_log(NARC_WARNING, "server resolved: %s to %s", server.host,res->ai_addr->sa_data);
 		start_udp_bind(res);
 	}else{
 		narc_log(NARC_WARNING, "server did not resolve: %s", server.host);
