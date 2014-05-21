@@ -324,12 +324,12 @@ main(int argc, char **argv)
 		narc_log(NARC_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/narc.conf", argv[0]);
 	}
 
-	start_timer_loop();
-
 	if (server.daemonize) daemonize();
 	init_server();
 	if (server.daemonize) create_pid_file();
 	narc_set_proc_title(argv[0]);
+
+	start_timer_loop();
 
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
 	narc_log(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
