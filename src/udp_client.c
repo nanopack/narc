@@ -118,13 +118,14 @@ start_udp_resolve(void)
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = 0;
 	narc_log(NARC_WARNING, "server resolving: %s", server.host);
-	narc_udp_client *client = (narc_tcp_client *)server.client;
+	narc_udp_client *client = (narc_udp_client *)server.client;
 	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, "80", &hints);
 }
 
 void
 start_udp_bind(struct addrinfo *res)
 {
+	narc_udp_client *client = (narc_udp_client *)server.client;
 	uv_udp_init(server.loop, &client->socket);
 
 	struct sockaddr_in recv_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
