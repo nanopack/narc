@@ -119,7 +119,8 @@ start_udp_resolve(void)
 	hints.ai_flags = 0;
 	narc_log(NARC_WARNING, "server resolving: %s", server.host);
 	narc_udp_client *client = (narc_udp_client *)server.client;
-	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, itoa(server.port), &hints);
+
+	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, "80", &hints);
 }
 
 void
@@ -129,6 +130,7 @@ start_udp_bind(struct addrinfo *res)
 	narc_udp_client *client = (narc_udp_client *)server.client;
 
 	memcpy(&client->send_addr,res->ai_addr,sizeof(res->ai_addr)),
+	client->send_addr.sin_port = hston(server.port);
 	narc_log(NARC_WARNING, "server resolved: '%s' to %s:%d", server.host, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
 
 	uv_udp_init(server.loop, &client->socket);
