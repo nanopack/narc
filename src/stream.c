@@ -126,8 +126,6 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 
 	narc_stream *stream = handle->data;
 
-	narc_log(NARC_WARNING, "File changed: %s", stream->file);
-
 	if (events == UV_CHANGE)
 		start_file_stat(stream);
 
@@ -146,16 +144,13 @@ handle_file_stat(uv_fs_t* req)
 	// file is initially opened
 	if (stream->size < 0){
 		lseek(stream->fd, 0, SEEK_END);
-		narc_log(NARC_WARNING, "file seek #1 %s",stream->file);
 	}
 
 	// file has been truncated
 	if (stat->st_size < stream->size){
 		lseek(stream->fd, 0, SEEK_SET);
-		narc_log(NARC_WARNING, "file seek #2 %s",stream->file);
 	}
 
-	narc_log(NARC_WARNING, "file is %d bytes",stat->st_size);
 	stream->size = stat->st_size;
 
 	start_file_read(stream);
@@ -173,7 +168,6 @@ handle_file_read(uv_fs_t *req)
 		narc_log(NARC_WARNING, "Read error (%s): %s", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
 
 	if (req->result > 0) {
-		narc_log(NARC_WARNING, "file read %s",stream->file);
 		
 		if (stream->index == 0)
 			init_line(stream->line);
@@ -264,7 +258,6 @@ void
 start_file_stat(narc_stream *stream)
 {
 	uv_fs_t *req = malloc(sizeof(uv_fs_t));
-	narc_log(NARC_WARNING, "streaming file %s",stream->file);
 	if (uv_fs_stat(server.loop, req, stream->file, handle_file_stat) == UV_OK)
 		req->data = (void *)stream;
 }
@@ -273,11 +266,9 @@ void
 start_file_read(narc_stream *stream)
 {
 	if (stream_locked(stream)){
-		narc_log(NARC_WARNING, "file locked %s",stream->file);
 		return;
 	}
 
-	narc_log(NARC_WARNING, "file not locked %s",stream->file);
 
 	init_buffer(stream->buffer);
 
