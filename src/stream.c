@@ -179,7 +179,7 @@ handle_file_read(uv_fs_t *req)
 
 				if(strcmp(stream->current_line,stream->previous_line) == 0 ){
 					stream->repeat_count++;
-					narc_log(NARC_WARNING, "%s: got the same line as last time", stream->file);
+					narc_log(NARC_WARNING, "%s: got the same line as last time %s %s", stream->file,stream->current_line,stream->previous_line);
 					init_line(stream->current_line);
 					stream->index = 0;
 					continue;
