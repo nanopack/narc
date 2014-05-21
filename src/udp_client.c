@@ -86,7 +86,7 @@ handle_udp_send(uv_udp_send_t* req, int status)
 			uv_err_name(uv_last_error(server.loop)));
 	}
 	narc_log(NARC_WARNING, "packet was sent");
-	free(req->data);
+	sdsfree(req->data);
 	free(req);
 }
 
