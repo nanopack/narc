@@ -54,7 +54,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
     if (init) {
         sh = malloc(sizeof(struct sdshdr)+initlen+1);
     } else {
-        sh = calloc(sizeof(struct sdshdr)+initlen+1);
+        sh = calloc(1,sizeof(struct sdshdr)+initlen+1);
     }
     if (sh == NULL) return NULL;
     sh->len = initlen;
