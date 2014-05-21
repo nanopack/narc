@@ -86,7 +86,7 @@ handle_udp_send(uv_udp_send_t* req, int status)
 		narc_log(NARC_WARNING, "Udp send error: %s", 
 			uv_err_name(uv_last_error(server.loop)));
 	}
-
+	narc_log(NARC_WARNING, "packet was sent");
 	zfree(req->data);
 }
 
@@ -118,6 +118,7 @@ submit_udp_message(char *message)
 	
 	req->data = (void *)message;
 	struct sockaddr_in send_addr = uv_ip4_addr("127.0.0.1", 1234);
+	narc_log(NARC_WARNING, "sending packet: %s", message);
     uv_udp_send(req, server.client, &buf, 1, send_addr, handle_udp_send);
 
 }
