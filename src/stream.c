@@ -168,6 +168,7 @@ handle_file_read(uv_fs_t *req)
 		narc_log(NARC_WARNING, "Read error (%s): %s", stream->file, uv_strerror(uv_last_error(uv_default_loop())));
 
 	if (req->result > 0) {
+		narc_log(NARC_WARNING, "file read %s",stream->file);
 		
 		if (stream->index == 0)
 			init_line(stream->line);
