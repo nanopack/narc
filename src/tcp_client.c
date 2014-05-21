@@ -157,15 +157,14 @@ handle_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 void
 start_resolve(void)
 {
-	uv_getaddrinfo_t resolver;
-
 	struct addrinfo hints;
 	hints.ai_family = PF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = 0;
 	narc_log(NARC_WARNING, "server resolving: %s", server.host);
-	uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
+	narc_tcp_client *client = (narc_tcp_client *)server.client;
+	uv_getaddrinfo(server.loop, &client->resolver, handle_resolved, server.host, "80", &hints);
 }
 
 void

@@ -44,6 +44,7 @@ typedef struct {
 	uv_tcp_t 	*socket;	/* tcp socket */
 	uv_stream_t	*stream;	/* connection stream */
 	int 		attempts;	/* connection attempts */
+	uv_getaddrinfo_t resolver;
 } narc_tcp_client;
 
 /*-----------------------------------------------------------------------------
