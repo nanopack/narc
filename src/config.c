@@ -29,7 +29,7 @@
 #include "stream.h"
 
 #include "sds.h"	/* dynamic safe strings */
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "malloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
@@ -123,8 +123,8 @@ load_server_config_from_string(char *config)
 				err = "argument must be 'yes' or 'no'"; goto loaderr;
 			}
 		} else if (!strcasecmp(argv[0], "pidfile") && argc == 2) {
-			zfree(server.pidfile);
-			server.pidfile = zstrdup(argv[1]);
+			free(server.pidfile);
+			server.pidfile = strdup(argv[1]);
 		} else if (!strcasecmp(argv[0], "loglevel") && argc == 2) {
 			if (!strcasecmp(argv[1],"debug")) server.verbosity = NARC_DEBUG;
 			else if (!strcasecmp(argv[1],"verbose")) server.verbosity = NARC_VERBOSE;
@@ -137,8 +137,8 @@ load_server_config_from_string(char *config)
 		} else if (!strcasecmp(argv[0],"logfile") && argc == 2) {
 			FILE *logfp;
 
-			zfree(server.logfile);
-			server.logfile = zstrdup(argv[1]);
+			free(server.logfile);
+			server.logfile = strdup(argv[1]);
 			if (server.logfile[0] != '\0') {
 				/* Test if we are able to open the file. The server will not
 				* be able to abort just for this problem later... */
@@ -155,8 +155,8 @@ load_server_config_from_string(char *config)
 				err = "argument must be 'yes' or 'no'"; goto loaderr;
 			}
 		} else if (!strcasecmp(argv[0],"syslog-ident") && argc == 2) {
-			if (server.syslog_ident) zfree(server.syslog_ident);
-				server.syslog_ident = zstrdup(argv[1]);
+			if (server.syslog_ident) free(server.syslog_ident);
+				server.syslog_ident = strdup(argv[1]);
 		} else if (!strcasecmp(argv[0],"syslog-facility") && argc == 2) {
 			int i;
 
@@ -172,8 +172,8 @@ load_server_config_from_string(char *config)
 				goto loaderr;
 			}
 		} else if (!strcasecmp(argv[0], "remote-host") && argc == 2) {
-			zfree(server.host);
-			server.host = zstrdup(argv[1]);
+			free(server.host);
+			server.host = strdup(argv[1]);
 		} else if (!strcasecmp(argv[0], "remote-port") && argc == 2) {
 			server.port = atoi(argv[1]);
 			if (server.port < 0 || server.port > 65535) {
@@ -195,8 +195,8 @@ load_server_config_from_string(char *config)
 		} else if (!strcasecmp(argv[0], "open-retry-delay") && argc == 2) {
 			server.open_retry_delay = atoll(argv[1]);
 		} else if (!strcasecmp(argv[0], "stream-id") && argc == 2) {
-			zfree(server.stream_id);
-			server.stream_id = zstrdup(argv[1]);
+			free(server.stream_id);
+			server.stream_id = strdup(argv[1]);
 		} else if (!strcasecmp(argv[0], "stream-facility") && argc == 2) {
 			int i;
 

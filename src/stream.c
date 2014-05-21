@@ -25,7 +25,6 @@
 
 #include "narc.h"
 #include "stream.h"
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
 
 // temporary
@@ -111,14 +110,14 @@ handle_file_open(uv_fs_t *req)
 	}
 
 	uv_fs_req_cleanup(req);
-	zfree(req);
+	free(req);
 }
 
 void
 handle_file_open_timeout(uv_timer_t* timer, int status)
 {
 	start_file_open((narc_stream *)timer->data);
-	zfree(timer);
+	free(timer);
 }
 
 void 
@@ -153,7 +152,7 @@ handle_file_stat(uv_fs_t* req)
 	start_file_read(stream);
 
 	uv_fs_req_cleanup(req);
-	zfree(req);
+	free(req);
 }
 
 void
@@ -207,7 +206,7 @@ handle_file_read(uv_fs_t *req)
 		start_file_read(stream);
 
 	uv_fs_req_cleanup(req);
-	zfree(req);
+	free(req);
 }
 
 void
@@ -217,7 +216,7 @@ handle_rate_limit_timer(uv_timer_t* timer, int status)
 	lock_stream(stream);
 	stream->rate_count--;
 	unlock_stream(stream);
-	zfree(timer);
+	free(timer);
 }
 
 /*================================= Watchers =================================== */
@@ -225,7 +224,7 @@ handle_rate_limit_timer(uv_timer_t* timer, int status)
 void
 start_file_open(narc_stream *stream)
 {
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, handle_file_open) == UV_OK) {
 		req->data = (void *)stream;
 		stream->attempts += 1;
@@ -235,7 +234,7 @@ start_file_open(narc_stream *stream)
 void
 start_file_watcher(narc_stream *stream)
 {
-	uv_fs_event_t *event = zmalloc(sizeof(uv_fs_event_t));
+	uv_fs_event_t *event = malloc(sizeof(uv_fs_event_t));
 	if (uv_fs_event_init(server.loop, event, stream->file, handle_file_change, 0) == UV_OK)
 		event->data = (void *)stream;
 }
@@ -243,7 +242,7 @@ start_file_watcher(narc_stream *stream)
 void
 start_file_open_timer(narc_stream *stream)
 {
-	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	uv_timer_t *timer = malloc(sizeof(uv_timer_t));
 	if (uv_timer_init(server.loop, timer) == UV_OK) {
 		if (uv_timer_start(timer, handle_file_open_timeout, server.open_retry_delay, 0) == UV_OK)
 			timer->data = (void *)stream;
@@ -253,7 +252,7 @@ start_file_open_timer(narc_stream *stream)
 void
 start_file_stat(narc_stream *stream)
 {
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	narc_log(NARC_WARNING, "streaming file %s",stream->file);
 	if (uv_fs_stat(server.loop, req, stream->file, handle_file_stat) == UV_OK)
 		req->data = (void *)stream;
@@ -267,7 +266,7 @@ start_file_read(narc_stream *stream)
 
 	init_buffer(stream->buffer);
 
-	uv_fs_t *req = zmalloc(sizeof(uv_fs_t));
+	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, sizeof(stream->buffer) -1, -1, handle_file_read) == UV_OK) {
 		lock_stream(stream);
 		req->data = (void *)stream;
@@ -277,7 +276,7 @@ start_file_read(narc_stream *stream)
 void
 start_rate_limit_timer(narc_stream *stream)
 {
-	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	uv_timer_t *timer = malloc(sizeof(uv_timer_t));
 	if (uv_timer_init(server.loop, timer) == UV_OK) {
 		if (uv_timer_start(timer, handle_rate_limit_timer, server.rate_time, 0) == UV_OK)
 			timer->data = (void *)stream;
@@ -289,7 +288,7 @@ start_rate_limit_timer(narc_stream *stream)
 narc_stream
 *new_stream(char *id, char *file)
 {
-	narc_stream *stream = zmalloc(sizeof(narc_stream));
+	narc_stream *stream = malloc(sizeof(narc_stream));
 	
 	stream->id           = id;
 	stream->file         = file;
@@ -306,9 +305,9 @@ narc_stream
 void
 free_stream(narc_stream *stream)
 {
-	zfree(stream->id);
-	zfree(stream->file);
-	zfree(stream);
+	free(stream->id);
+	free(stream->file);
+	free(stream);
 }
 
 void

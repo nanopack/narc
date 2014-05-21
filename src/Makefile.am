@@ -3,9 +3,9 @@
 
 bin_PROGRAMS = narcd
 
-narcd_SOURCES =  adlist.c crc16.c endianconv.c narc.h sds.c sha1.h tcp_client.c util.c zmalloc.h \
+narcd_SOURCES =  adlist.c crc16.c endianconv.c narc.h sds.c sha1.h tcp_client.c util.c \
 	adlist.h crc64.c endianconv.h narcassert.h sds.h solarisfixes.h tcp_client.h util.h \
 	config.c crc64.h fmacros.h setproctitle.c stream.c udp_client.c version.h \
-	config.h debug.c narc.c sha1.c stream.h udp_client.h zmalloc.c
+	config.h debug.c narc.c sha1.c stream.h udp_client.h
 
 	

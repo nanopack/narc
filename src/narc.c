@@ -29,7 +29,7 @@
 #include "tcp_client.h"
 #include "udp_client.h"
 
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "malloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
 #include "util.h"	/* Misc functions useful in many places */
 
@@ -146,19 +146,19 @@ start_timer_loop()
 void
 init_server_config(void)
 {
-	server.pidfile = zstrdup(NARC_DEFAULT_PIDFILE);
+	server.pidfile = strdup(NARC_DEFAULT_PIDFILE);
 	server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
-	server.host = zstrdup(NARC_DEFAULT_HOST);
+	server.host = strdup(NARC_DEFAULT_HOST);
 	server.port = NARC_DEFAULT_PORT;
 	server.protocol = NARC_DEFAULT_PROTO;
-	server.stream_id = zstrdup(NARC_DEFAULT_STREAM_ID);
+	server.stream_id = strdup(NARC_DEFAULT_STREAM_ID);
 	server.stream_facility = NARC_DEFAULT_STREAM_FACILITY;
 	server.stream_priority = NARC_DEFAULT_STREAM_PRIORITY;
 	server.verbosity = NARC_DEFAULT_VERBOSITY;
 	server.daemonize = NARC_DEFAULT_DAEMONIZE;
-	server.logfile = zstrdup(NARC_DEFAULT_LOGFILE);
+	server.logfile = strdup(NARC_DEFAULT_LOGFILE);
 	server.syslog_enabled = NARC_DEFAULT_SYSLOG_ENABLED;
-	server.syslog_ident = zstrdup(NARC_DEFAULT_SYSLOG_IDENT);
+	server.syslog_ident = strdup(NARC_DEFAULT_SYSLOG_IDENT);
 	server.syslog_facility = LOG_LOCAL0;
 	server.max_open_attempts = NARC_DEFAULT_OPEN_ATTEMPTS;
 	server.open_retry_delay = NARC_DEFAULT_OPEN_DELAY;
@@ -285,8 +285,8 @@ int
 main(int argc, char **argv)
 {
 	setlocale(LC_COLLATE,"");
-	zmalloc_enable_thread_safeness();
-	zmalloc_set_oom_handler(narc_out_of_memory_handler);
+	malloc_enable_thread_safeness();
+	malloc_set_oom_handler(narc_out_of_memory_handler);
 	init_server_config();
 
 	if (argc >= 2) {

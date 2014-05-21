@@ -27,7 +27,7 @@
 #include "udp_client.h"
 
 #include "sds.h"	/* dynamic safe strings */
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "malloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
@@ -40,14 +40,14 @@ void
 free_udp_write_req(uv_write_t *req) 
 {
 	sdsfree((char *)req->data);
-	zfree(req->bufs);
-	zfree(req);
+	free(req->bufs);
+	free(req);
 }
 
 narc_udp_client
 *new_udp_client(void)
 {
-	narc_udp_client *client = (narc_udp_client *)zmalloc(sizeof(narc_udp_client));
+	narc_udp_client *client = (narc_udp_client *)malloc(sizeof(narc_udp_client));
 	client->socket   = NULL;
 
 	return client;
@@ -62,7 +62,7 @@ handle_udp_write(uv_write_t* req, int status)
 uv_buf_t 
 handle_udp_read_alloc_buffer(uv_handle_t* handle, size_t size)
 {
-	return uv_buf_init(zmalloc(size), size);
+	return uv_buf_init(malloc(size), size);
 }
 
 void
@@ -76,7 +76,7 @@ handle_udp_read(uv_udp_t *req, ssize_t nread, uv_buf_t buf, struct sockaddr *add
 			uv_err_name(uv_last_error(server.loop)));
 	}
 
-	zfree(buf.base);
+	free(buf.base);
 }
 
 void
@@ -87,7 +87,7 @@ handle_udp_send(uv_udp_send_t* req, int status)
 			uv_err_name(uv_last_error(server.loop)));
 	}
 	narc_log(NARC_WARNING, "packet was sent");
-	zfree(req->data);
+	free(req->data);
 }
 
 void
@@ -113,7 +113,7 @@ init_udp_client(void)
 void
 submit_udp_message(char *message)
 {
-	uv_udp_send_t *req = (uv_udp_send_t *)zmalloc(sizeof(uv_udp_send_t));
+	uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
 	uv_buf_t buf    = uv_buf_init(message, strlen(message));
 	
 	req->data = (void *)message;

@@ -27,7 +27,7 @@
 #include "tcp_client.h"
 
 #include "sds.h"	/* dynamic safe strings */
-#include "zmalloc.h"	/* total memory usage aware version of malloc/free */
+#include "malloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
@@ -40,14 +40,14 @@ void
 free_tcp_write_req(uv_write_t *req) 
 {
 	sdsfree((char *)req->data);
-	zfree(req->bufs);
-	zfree(req);
+	free(req->bufs);
+	free(req);
 }
 
 narc_tcp_client
 *new_tcp_client(void)
 {
-	narc_tcp_client *client = (narc_tcp_client *)zmalloc(sizeof(narc_tcp_client));
+	narc_tcp_client *client = (narc_tcp_client *)malloc(sizeof(narc_tcp_client));
 
 	client->state    = NARC_TCP_INITIALIZED;
 	client->socket   = NULL;
@@ -71,7 +71,7 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 	narc_tcp_client *client = server.client;
 
 	if (status == -1) {
-		uv_close((uv_handle_t *)client->socket, (uv_close_cb)zfree);
+		uv_close((uv_handle_t *)client->socket, (uv_close_cb)free);
 		client->socket = NULL;
 		narc_log(NARC_WARNING, "Error connecting to %s:%d (%d/%d)", 
 			server.host, 
@@ -97,7 +97,7 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 		start_tcp_read(client->stream);
 	}
 
-	zfree(connection);
+	free(connection);
 }
 
 void
@@ -109,7 +109,7 @@ handle_tcp_write(uv_write_t* req, int status)
 uv_buf_t 
 handle_tcp_read_alloc_buffer(uv_handle_t* handle, size_t size)
 {
-	return uv_buf_init(zmalloc(size), size);
+	return uv_buf_init(malloc(size), size);
 }
 
 void
@@ -124,21 +124,21 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 			server.port);
 		
 		narc_tcp_client *client = (narc_tcp_client *)server.client;
-		uv_close((uv_handle_t *)client->socket, (uv_close_cb)zfree);
+		uv_close((uv_handle_t *)client->socket, (uv_close_cb)free);
 		client->socket = NULL;
 		client->state = NARC_TCP_INITIALIZED;
 
 		start_resolve();
 	}
 
-	zfree(buf.base);
+	free(buf.base);
 }
 
 void
 handle_tcp_connect_timeout(uv_timer_t* timer, int status)
 {
 	start_resolve();
-	zfree(timer);
+	free(timer);
 }
 
 void
@@ -171,14 +171,14 @@ void
 start_tcp_connect(struct addrinfo *res)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
-	uv_tcp_t 	*socket = (uv_tcp_t *)zmalloc(sizeof(uv_tcp_t));
+	uv_tcp_t 	*socket = (uv_tcp_t *)malloc(sizeof(uv_tcp_t));
 
 	uv_tcp_init(server.loop, socket);
 	uv_tcp_keepalive(socket, 1, 60);
 
 	struct sockaddr_in dest = uv_ip4_addr(res->ai_addr->sa_data, server.port);
 
-	uv_connect_t *connect = zmalloc(sizeof(uv_connect_t));
+	uv_connect_t *connect = malloc(sizeof(uv_connect_t));
 	if(uv_tcp_connect(connect, socket, dest, handle_tcp_connect) == UV_OK) {
 		client->socket = socket;
 		client->attempts += 1;
@@ -195,7 +195,7 @@ start_tcp_read(uv_stream_t *stream)
 void
 start_tcp_connect_timer(void)
 {
-	uv_timer_t *timer = zmalloc(sizeof(uv_timer_t));
+	uv_timer_t *timer = malloc(sizeof(uv_timer_t));
 	if (uv_timer_init(server.loop, timer) == UV_OK)
 		uv_timer_start(timer, handle_tcp_connect_timeout, server.connect_retry_delay, 0);
 }
@@ -220,7 +220,7 @@ submit_tcp_message(char *message)
 		return;
 	}
 
-	uv_write_t *req = (uv_write_t *)zmalloc(sizeof(uv_write_t));
+	uv_write_t *req = (uv_write_t *)malloc(sizeof(uv_write_t));
 	uv_buf_t buf    = uv_buf_init(message, strlen(message));
 
 	if (uv_write(req, client->stream, &buf, 1, handle_tcp_write) == UV_OK)

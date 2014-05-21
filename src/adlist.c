@@ -31,7 +31,7 @@
 
 #include <stdlib.h>
 #include "adlist.h"
-#include "zmalloc.h"
+#include "malloc.h"
 
 /* Create a new list. The created list can be freed with
  * AlFreeList(), but private value of every node need to be freed
@@ -42,7 +42,7 @@ list *listCreate(void)
 {
     struct list *list;
 
-    if ((list = zmalloc(sizeof(*list))) == NULL)
+    if ((list = malloc(sizeof(*list))) == NULL)
         return NULL;
     list->head = list->tail = NULL;
     list->len = 0;
@@ -65,10 +65,10 @@ void listRelease(list *list)
     while(len--) {
         next = current->next;
         if (list->free) list->free(current->value);
-        zfree(current);
+        free(current);
         current = next;
     }
-    zfree(list);
+    free(list);
 }
 
 /* Add a new node to the list, to head, contaning the specified 'value'
@@ -81,7 +81,7 @@ list *listAddNodeHead(list *list, void *value)
 {
     listNode *node;
 
-    if ((node = zmalloc(sizeof(*node))) == NULL)
+    if ((node = malloc(sizeof(*node))) == NULL)
         return NULL;
     node->value = value;
     if (list->len == 0) {
@@ -107,7 +107,7 @@ list *listAddNodeTail(list *list, void *value)
 {
     listNode *node;
 
-    if ((node = zmalloc(sizeof(*node))) == NULL)
+    if ((node = malloc(sizeof(*node))) == NULL)
         return NULL;
     node->value = value;
     if (list->len == 0) {
@@ -126,7 +126,7 @@ list *listAddNodeTail(list *list, void *value)
 list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
     listNode *node;
 
-    if ((node = zmalloc(sizeof(*node))) == NULL)
+    if ((node = malloc(sizeof(*node))) == NULL)
         return NULL;
     node->value = value;
     if (after) {
@@ -167,7 +167,7 @@ void listDelNode(list *list, listNode *node)
     else
         list->tail = node->prev;
     if (list->free) list->free(node->value);
-    zfree(node);
+    free(node);
     list->len--;
 }
 
@@ -179,7 +179,7 @@ listIter *listGetIterator(list *list, int direction)
 {
     listIter *iter;
     
-    if ((iter = zmalloc(sizeof(*iter))) == NULL) return NULL;
+    if ((iter = malloc(sizeof(*iter))) == NULL) return NULL;
     if (direction == AL_START_HEAD)
         iter->next = list->head;
     else
@@ -190,7 +190,7 @@ listIter *listGetIterator(list *list, int direction)
 
 /* Release the iterator memory */
 void listReleaseIterator(listIter *iter) {
-    zfree(iter);
+    free(iter);
 }
 
 /* Create an iterator in the list private iterator structure */
