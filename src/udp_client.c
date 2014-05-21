@@ -126,12 +126,17 @@ start_udp_resolve(void)
 void
 start_udp_bind(struct addrinfo *res)
 {
+
 	narc_udp_client *client = (narc_udp_client *)server.client;
+
+	client->send_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
+	narc_log(NARC_WARNING, "server resolved: '%s' to %s:%d", message, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
+
 	uv_udp_init(server.loop, &client->socket);
 
 	struct sockaddr_in recv_addr = uv_ip4_addr("0.0.0.0", 0);
 	uv_udp_bind(&client->socket, recv_addr, 0);
-	client->send_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
+
 	client->state = NARC_UDP_BOUND;
 	start_udp_read();
 
