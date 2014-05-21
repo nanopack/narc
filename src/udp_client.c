@@ -95,31 +95,69 @@ start_udp_read()
 	uv_udp_recv_start(server.client, handle_udp_read_alloc_buffer, handle_udp_read);
 }
 
+
+void
+handle_udp_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+{
+	if (status >= 0){
+		narc_log(NARC_WARNING, "server resolved: %s", server.host);
+		start_udp_bind(res);
+	}else{
+		narc_log(NARC_WARNING, "server did not resolve: %s", server.host);
+	}
+}
+
+/*=============================== Watchers ================================== */
+
+void
+start_udp_resolve(void)
+{
+	struct addrinfo hints;
+	hints.ai_family = PF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = 0;
+	narc_log(NARC_WARNING, "server resolving: %s", server.host);
+	narc_udp_client *client = (narc_tcp_client *)server.client;
+	uv_getaddrinfo(server.loop, &client->resolver, handle_udp_resolved, server.host, "80", &hints);
+}
+
+void
+start_udp_bind(struct addrinfo *res)
+{
+	uv_udp_init(server.loop, &client->socket);
+
+	struct sockaddr_in recv_addr = uv_ip4_addr(res->ai_addr->sa_data, server.port);
+	uv_udp_bind(&client->socket, recv_addr, 0);
+	start_udp_read();
+
+	uv_freeaddrinfo(res);
+}
+
 /*================================== API ==================================== */
 
 void
 init_udp_client(void)
 {
 	narc_udp_client *client = new_udp_client();
-	server.client = (void *)client;
-	
-	uv_udp_init(server.loop, &client->socket);
+	client->state = NARC_UDP_INITIALIZED;
 
-	struct sockaddr_in recv_addr = uv_ip4_addr("0.0.0.0", 0);
-	uv_udp_bind(&client->socket, recv_addr, 0);
-	start_udp_read();
+	server.client = (void *)client;
+	start_udp_resolve();
 }
 
 void
 submit_udp_message(char *message)
 {
-	uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
-	uv_buf_t buf    = uv_buf_init(message, strlen(message));
-	
-	req->data = (void *)message;
-	struct sockaddr_in send_addr = uv_ip4_addr("127.0.0.1", 1234);
-	narc_log(NARC_WARNING, "sending packet: %s", message);
-	narc_udp_client *client = (narc_udp_client *)server.client;
-    uv_udp_send(req, &client->socket, &buf, 1, send_addr, handle_udp_send);
+	if(client->state == NARC_UDP_BOUND){
+		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
+		uv_buf_t buf    = uv_buf_init(message, strlen(message));
+		
+		req->data = (void *)message;
+		struct sockaddr_in send_addr = uv_ip4_addr("127.0.0.1", 1234);
+		narc_log(NARC_WARNING, "sending packet: %s", message);
+		narc_udp_client *client = (narc_udp_client *)server.client;
+	    uv_udp_send(req, &client->socket, &buf, 1, send_addr, handle_udp_send);
+	}
 
 }

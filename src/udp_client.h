@@ -31,12 +31,17 @@
 
 #include <uv.h>		/* Event driven programming library */
 
+/* connection states */
+#define NARC_UDP_INITIALIZED	0
+#define NARC_UDP_BOUND			1
 /*-----------------------------------------------------------------------------
  * Data types
  *----------------------------------------------------------------------------*/
 
 typedef struct {
+	int 		state;		/* connection state */
 	uv_udp_t 	socket;	/* udp socket */
+	uv_getaddrinfo_t resolver;
 } narc_udp_client;
 
 /*-----------------------------------------------------------------------------

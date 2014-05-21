@@ -128,7 +128,7 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 		client->socket = NULL;
 		client->state = NARC_TCP_INITIALIZED;
 
-		start_resolve();
+		start_tcp_resolve();
 	}
 
 	free(buf.base);
@@ -137,12 +137,12 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, uv_buf_t buf)
 void
 handle_tcp_connect_timeout(uv_timer_t* timer, int status)
 {
-	start_resolve();
+	start_tcp_resolve();
 	free(timer);
 }
 
 void
-handle_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+handle_tcp_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 {
 	if (status >= 0){
 		narc_log(NARC_WARNING, "server resolved: %s", server.host);
@@ -155,7 +155,7 @@ handle_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
 /*=============================== Watchers ================================== */
 
 void
-start_resolve(void)
+start_tcp_resolve(void)
 {
 	struct addrinfo hints;
 	hints.ai_family = PF_INET;
@@ -164,7 +164,7 @@ start_resolve(void)
 	hints.ai_flags = 0;
 	narc_log(NARC_WARNING, "server resolving: %s", server.host);
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
-	uv_getaddrinfo(server.loop, &client->resolver, handle_resolved, server.host, "80", &hints);
+	uv_getaddrinfo(server.loop, &client->resolver, handle_tcp_resolved, server.host, "80", &hints);
 }
 
 void
@@ -207,7 +207,7 @@ init_tcp_client(void)
 {
 	server.client = (void *)new_tcp_client();
 
-	start_resolve();
+	start_tcp_resolve();
 }
 
 void
