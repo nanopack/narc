@@ -92,7 +92,8 @@ handle_udp_send(uv_udp_send_t* req, int status)
 void
 start_udp_read()
 {
-	uv_udp_recv_start(server.client, handle_udp_read_alloc_buffer, handle_udp_read);
+	narc_udp_client *client = (narc_udp_client *)server.client;
+	uv_udp_recv_start(&client->socket, handle_udp_read_alloc_buffer, handle_udp_read);
 }
 
 
