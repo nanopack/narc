@@ -130,7 +130,7 @@ start_udp_bind(struct addrinfo *res)
 	narc_udp_client *client = (narc_udp_client *)server.client;
 
 	memcpy(&client->send_addr,res->ai_addr,sizeof(res->ai_addr)),
-	client->send_addr.sin_port = hston(server.port);
+	client->send_addr.sin_port = htons(server.port);
 	narc_log(NARC_WARNING, "server resolved: '%s' to %s:%d", server.host, inet_ntoa(client->send_addr.sin_addr),ntohs(client->send_addr.sin_port));
 
 	uv_udp_init(server.loop, &client->socket);
