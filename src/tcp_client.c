@@ -160,8 +160,8 @@ start_resolve(void)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = 0;
-
-	// uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
+	
+	uv_getaddrinfo(server.loop, &resolver, handle_resolved, server.host, "80", &hints);
 }
 
 void
