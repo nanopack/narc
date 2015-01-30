@@ -246,9 +246,7 @@ void
 handle_rate_limit_timer(uv_timer_t* timer, int status)
 {
 	narc_stream *stream = timer->data;
-	lock_stream(stream);
 	stream->rate_count--;
-	unlock_stream(stream);
 	free(timer);
 }
 

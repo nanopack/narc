@@ -40,7 +40,6 @@ typedef struct {
 	char 	*file;					/* absolute path to the file */
 	int 	fd;					/* file descriptor */
 	off_t 	size;					/* last known file size in bytes */
-	int	which;					/* which buffer to use */
 	char 	buffer[NARC_MAX_BUFF_SIZE];		/* read buffer (file content) */
 	char 	line[(NARC_MAX_LOGMSG_LEN + 1) * 2];	/* the current and previous lines buffer */
 	char	*current_line;				/* current line */
