@@ -81,6 +81,26 @@ stream_unlocked(narc_stream *stream)
 	return (stream->lock == NARC_STREAM_UNLOCKED);
 }
 
+void
+submit_message(narc_stream *stream, char *message)
+{
+	if (stream->rate_count < server.rate_limit) {
+		if (stream->missed_count > 0) {
+			char str[81];
+			sprintf(&str[0], "Missed %d messages\0", stream->missed_count);
+			stream->rate_count++;
+			start_rate_limit_timer(stream);
+			handle_message(stream->id, &str[0]);
+			stream->missed_count = 0;
+		}
+		stream->rate_count++;
+		start_rate_limit_timer(stream);
+		handle_message(stream->id, message);
+	} else {
+		stream->missed_count++;
+	}
+}
+
 /*============================== Callbacks ================================= */
 
 void
@@ -132,6 +152,9 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 	else if (!file_exists(stream->file)) {
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		start_file_open(stream);
+		if (uv_fs_event_close(server.loop, handle) == UV_OK) {
+			free(handle);
+		}
 	}
 }
 
@@ -177,40 +200,21 @@ handle_file_read(uv_fs_t *req)
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
 				stream->current_line[stream->index] = '\0';
 
-				if(strcmp(stream->current_line,stream->previous_line) == 0 ){
+				if(strcmp(stream->current_line, stream->previous_line) == 0 ){
 					stream->repeat_count++;
 					init_line(stream->current_line);
 					stream->index = 0;
 					continue;
-				}else if(stream->repeat_count == 1){
-					handle_message(stream->id, stream->previous_line);
-				}else if(stream->repeat_count > 0 || stream->repeat_count == 500){
+				} else if(stream->repeat_count == 1){
+					submit_message(stream, stream->previous_line);
+				} else if(stream->repeat_count > 0 || stream->repeat_count == 500){
 					char str[NARC_MAX_LOGMSG_LEN + 20];
-					sprintf(&str[0], "%s Repeated %d Times\0",stream->previous_line,stream->repeat_count);
-					handle_message(stream->id, &str[0]);
+					sprintf(&str[0], "%s Repeated %d Times\0", stream->previous_line, stream->repeat_count);
+					submit_message(stream, &str[0]);
 				}
 
 				stream->repeat_count = 0;
-
-				if (stream->rate_count < server.rate_limit)
-				{
-					if (stream->missed_count > 0)
-					{
-						char str[81];
-						sprintf(&str[0], "Missed %d messages\0", stream->missed_count);
-						stream->rate_count++;
-						start_rate_limit_timer(stream);
-						handle_message(stream->id, &str[0]);
-						stream->missed_count = 0;
-					}
-					stream->rate_count++;
-					start_rate_limit_timer(stream);
-					handle_message(stream->id, stream->current_line);
-				}
-				else
-				{
-					stream->missed_count++;
-				}
+				
 				char *tmp = stream->previous_line;
 				stream->previous_line = stream->current_line;
 				stream->current_line = tmp;
@@ -248,7 +252,7 @@ handle_rate_limit_timer(uv_timer_t* timer, int status)
 void
 start_file_open(narc_stream *stream)
 {
-	narc_log(NARC_WARNING, "opening file %s",stream->file);
+	narc_log(NARC_WARNING, "opening file %s", stream->file);
 	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	if (uv_fs_open(server.loop, req, stream->file, O_RDONLY, 0, handle_file_open) == UV_OK) {
 		req->data = (void *)stream;
@@ -288,7 +292,6 @@ start_file_read(narc_stream *stream)
 	if (stream_locked(stream)){
 		return;
 	}
-
 
 	init_buffer(stream->buffer);
 

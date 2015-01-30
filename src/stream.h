@@ -36,21 +36,21 @@
  *----------------------------------------------------------------------------*/
 
 typedef struct {
-	char 	*id;				/* message id prefix */
-	char 	*file;				/* absolute path to the file */
-	int 	fd;				/* file descriptor */
-	off_t 	size;				/* last known file size in bytes */
-	int		which;				/* which buffer to use */
-	char 	buffer[NARC_MAX_BUFF_SIZE];	/* read buffer (file content) */
+	char 	*id;					/* message id prefix */
+	char 	*file;					/* absolute path to the file */
+	int 	fd;					/* file descriptor */
+	off_t 	size;					/* last known file size in bytes */
+	int	which;					/* which buffer to use */
+	char 	buffer[NARC_MAX_BUFF_SIZE];		/* read buffer (file content) */
 	char 	line[(NARC_MAX_LOGMSG_LEN + 1) * 2];	/* the current and previous lines buffer */
-	char	*current_line;		/* current line */
-	char	*previous_line;		/* previous line */
-	int		repeat_count;		/* how many times the previous line was repeated */
-	int 	index;				/* the line character index */
-	int 	lock;				/* read lock to prevent resetting buffers */
-	int 	attempts;			/* open attempts */
-	int	rate_count;			/*  */
-	int	missed_count;			/*  */
+	char	*current_line;				/* current line */
+	char	*previous_line;				/* previous line */
+	int	repeat_count;				/* how many times the previous line was repeated */
+	int 	index;					/* the line character index */
+	int 	lock;					/* read lock to prevent resetting buffers */
+	int 	attempts;				/* open attempts */
+	int	rate_count;				/*  */
+	int	missed_count;				/*  */
 } narc_stream;
 
 /*-----------------------------------------------------------------------------

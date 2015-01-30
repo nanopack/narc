@@ -170,7 +170,8 @@ submit_udp_message(char *message)
 		uv_buf_t buf    = uv_buf_init(message, strlen(message));
 		req->data = (void *)message;
 		narc_udp_client *client = (narc_udp_client *)server.client;
-	    uv_udp_send(req, &client->socket, &buf, 1, client->send_addr, handle_udp_send);
+		uv_udp_send(req, &client->socket, &buf, 1, client->send_addr, handle_udp_send);
+	} else {
+		sdsfree(message);
 	}
-
 }
