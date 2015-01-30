@@ -87,7 +87,7 @@ submit_message(narc_stream *stream, char *message)
 	if (stream->rate_count < server.rate_limit) {
 		if (stream->missed_count > 0) {
 			char str[81];
-			sprintf(&str[0], "Missed %d messages\0", stream->missed_count);
+			sprintf(&str[0], "Suppressed %d messages due to rate limiting\0", stream->missed_count);
 			stream->rate_count++;
 			start_rate_limit_timer(stream);
 			handle_message(stream->id, &str[0]);
@@ -192,34 +192,39 @@ handle_file_read(uv_fs_t *req)
 
 	if (req->result > 0) {
 		
-		if (stream->index == 0)
-			init_line(stream->current_line);
-
 		int i;
 		for (i = 0; i < req->result; i++) {
+			if (stream->index == 0)
+				init_line(stream->current_line);
+
 			if (stream->buffer[i] == '\n' || stream->index == NARC_MAX_MESSAGE_SIZE -1) {
 				stream->current_line[stream->index] = '\0';
 
-				if(strcmp(stream->current_line, stream->previous_line) == 0 ){
+				if (strcmp(stream->current_line, stream->previous_line) == 0 ) {
 					stream->repeat_count++;
 					init_line(stream->current_line);
 					stream->index = 0;
+					if (stream->repeat_count % 500 == 0) {
+						char str[NARC_MAX_LOGMSG_LEN + 20];
+						sprintf(&str[0], "Previous message repeated %d times\0", stream->repeat_count);
+						submit_message(stream, &str[0]);
+					}
 					continue;
-				} else if(stream->repeat_count == 1){
+				} else if (stream->repeat_count == 1) {
 					submit_message(stream, stream->previous_line);
-				} else if(stream->repeat_count > 0 || stream->repeat_count == 500){
+				} else if (stream->repeat_count > 1) {
 					char str[NARC_MAX_LOGMSG_LEN + 20];
-					sprintf(&str[0], "%s Repeated %d Times\0", stream->previous_line, stream->repeat_count);
+					sprintf(&str[0], "Previous message repeated %d times\0", stream->repeat_count);
 					submit_message(stream, &str[0]);
 				}
 
+				submit_message(stream, stream->current_line);
 				stream->repeat_count = 0;
 				
 				char *tmp = stream->previous_line;
 				stream->previous_line = stream->current_line;
 				stream->current_line = tmp;
 
-				init_line(stream->current_line);
 				stream->index = 0;
 			} else {
 				stream->current_line[stream->index] = stream->buffer[i];
