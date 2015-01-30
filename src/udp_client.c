@@ -36,26 +36,12 @@
 
 /*============================ Utility functions ============================ */
 
-void 
-free_udp_write_req(uv_write_t *req) 
-{
-	sdsfree((char *)req->data);
-	free(req->bufs);
-	free(req);
-}
-
 narc_udp_client
 *new_udp_client(void)
 {
 	narc_udp_client *client = (narc_udp_client *)malloc(sizeof(narc_udp_client));
 
 	return client;
-}
-
-void
-handle_udp_write(uv_write_t* req, int status)
-{
-	free_udp_write_req(req);
 }
 
 uv_buf_t 
@@ -160,7 +146,7 @@ void
 submit_udp_message(char *message)
 {
 	narc_udp_client *client = (narc_udp_client *)server.client;
-	if(client->state == NARC_UDP_BOUND){
+	if (client->state == NARC_UDP_BOUND) {
 
 		// we make the packet one character less so that we aren't sending the newline character
 		message[strlen(message)-1] = '\0';
