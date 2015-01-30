@@ -152,9 +152,6 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 	else if (!file_exists(stream->file)) {
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		start_file_open(stream);
-		if (uv_fs_event_close(server.loop, handle) == UV_OK) {
-			free(handle);
-		}
 	}
 }
 
