@@ -1,2 +1,11 @@
 # narc
-A logvac client that watches log files and reports to the logvac server.
+
+Small client utility to watch log files and ship to syslog service, like logvac.
+
+## Status
+
+Complete/Stable
+
+## TODO
+
+- documentation
