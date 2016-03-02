@@ -8,29 +8,19 @@ AC_CONFIG_SRCDIR([src/narc.c])
 
 AC_PROG_CC
 
-AC_CHECK_LIB(socket, ether_ntoa,
+AC_SEARCH_LIBS(ether_ntoa, socket,
   [],
   [AC_MSG_ERROR([socket libraries not found.])]
 )
 
-AC_CHECK_LIB(pthread, pthread_mutexattr_init,
+AC_SEARCH_LIBS(pthread_mutexattr_init, pthread,
   [],
   [AC_MSG_ERROR([pthread libraries not found.])]
 )
 
-AC_CHECK_LIB(nsl, inet_aton,
+AC_SEARCH_LIBS(inet_aton, nsl,
   [],
   [AC_MSG_ERROR([nsl libraries not found.])]
-)
-
-AC_CHECK_LIB(kstat, kstat_data_lookup,
-  [],
-  [AC_MSG_ERROR([libkstat libraries not found.])]
-)
-
-AC_CHECK_LIB(sendfile, sendfile,
-  [],
-  [AC_MSG_ERROR([libsendfile libraries not found.])]
 )
 
 AC_CHECK_HEADERS(uv.h,
@@ -38,9 +28,13 @@ AC_CHECK_HEADERS(uv.h,
   [AC_MSG_ERROR([libuv header files not found.]); break]
 )
 
-AC_CHECK_LIB(uv, uv_run,
-  [],
-  [AC_MSG_ERROR([libuv libraries not found.])]
+AC_SEARCH_LIBS(uv_run, uv,
+  []
+  [AC_SEARCH_LIBS(uv_run, uv,
+    [],
+    [AC_MSG_ERROR([libuv libraries not found.])],
+    -lsendfile -lkstat
+  )]
 )
 
 AC_OUTPUT(Makefile src/Makefile)
