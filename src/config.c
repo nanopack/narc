@@ -29,7 +29,7 @@
 #include "stream.h"
 
 #include "sds.h"	/* dynamic safe strings */
-#include "malloc.h"	/* total memory usage aware version of malloc/free */
+// #include "malloc.h"	/* total memory usage aware version of malloc/free */
 
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
