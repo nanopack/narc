@@ -5,7 +5,7 @@ dist: trusty
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libuv0.10 libuv-dev
+  - sudo apt-get install -y libuv1 libuv1-dev
   - mkdir m4
   - autoreconf -fvi
 
