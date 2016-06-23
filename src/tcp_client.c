@@ -138,7 +138,7 @@ handle_tcp_read(uv_stream_t* tcp, ssize_t nread, const struct uv_buf_t *buf)
 		client->socket = NULL;
 		client->state = NARC_TCP_INITIALIZED;
 
-		start_tcp_resolve();
+		start_tcp_connect_timer();
 	}
 	if (buf->base)
 		free(buf->base);
