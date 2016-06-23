@@ -168,12 +168,12 @@ handle_file_stat(uv_fs_t* req)
 
 	// file is initially opened
 	if (stream->size < 0){
-		lseek(stream->fd, 0, SEEK_END);
+		stream->offset = stat->st_size;
 	}
 
 	// file has been truncated
-	if (stat->st_size < stream->size){
-		lseek(stream->fd, 0, SEEK_SET);
+	if ((long int)stat->st_size < (long int)stream->size){
+		stream->offset = 0;
 	}
 
 	stream->size = stat->st_size;
@@ -193,7 +193,7 @@ handle_file_read(uv_fs_t *req)
 		narc_log(NARC_WARNING, "Read error (%s): %s", stream->file, uv_err_name(req->result));
 
 	if (req->result > 0) {
-		
+		stream->offset += req->result;
 		int i;
 		for (i = 0; i < req->result; i++) {
 			if (stream->index == 0)
@@ -302,8 +302,7 @@ start_file_read(narc_stream *stream)
 	init_buffer(stream->buffer);
 
 	uv_fs_t *req = malloc(sizeof(uv_fs_t));
-	// uv_loop_t* loop, uv_fs_t* req, uv_file file, const uv_buf_t bufs[], unsigned int nbufs, int64_t offset, uv_fs_cb cb
-	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, NARC_STREAM_BUFFERS, -1, handle_file_read) == 0) {
+	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, NARC_STREAM_BUFFERS, stream->offset, handle_file_read) == 0) {
 		lock_stream(stream);
 		req->data = (void *)stream;
 	}
@@ -335,6 +334,7 @@ narc_stream
 	stream->rate_count    = 0;
 	stream->missed_count  = 0;
 	stream->repeat_count  = 0;
+	stream->offset        = 0;
 
 	stream->current_line  = &stream->line[0];
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
