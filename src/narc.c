@@ -105,8 +105,8 @@ void
 handle_message(char *id, char *body)
 {
 	char *message;
-	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
-				server.stream_facility, server.stream_priority,
+	message = sdscatprintf(sdsempty(), "<%d>%s %s %s %s\n", 
+				server.stream_facility + server.stream_priority,
 				server.time, server.stream_id, id, body);
 
 	switch (server.protocol) {

@@ -325,16 +325,17 @@ narc_stream
 {
 	narc_stream *stream = malloc(sizeof(narc_stream));
 	
-	stream->id            = id;
-	stream->file          = file;
-	stream->attempts      = 0;
-	stream->size          = -1;
-	stream->index         = 0;
-	stream->lock          = NARC_STREAM_UNLOCKED;
-	stream->rate_count    = 0;
-	stream->missed_count  = 0;
-	stream->repeat_count  = 0;
-	stream->offset        = 0;
+	stream->id                  = id;
+	stream->file                = file;
+	stream->attempts            = 0;
+	stream->size                = -1;
+	stream->index               = 0;
+	stream->lock                = NARC_STREAM_UNLOCKED;
+	stream->rate_count          = 0;
+	stream->missed_count        = 0;
+	stream->repeat_count        = 0;
+	stream->message_header_size = strlen(id) + strlen(server.stream_id) + 24;
+	stream->offset              = 0;
 
 	stream->current_line  = &stream->line[0];
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];

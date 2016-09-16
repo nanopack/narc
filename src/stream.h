@@ -52,6 +52,7 @@ typedef struct {
 	int 	attempts;				/* open attempts */
 	int	rate_count;				/*  */
 	int	missed_count;				/*  */
+	int     message_header_size;
 	int64_t offset;
 } narc_stream;
 
