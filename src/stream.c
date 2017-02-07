@@ -146,11 +146,17 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 
 	narc_stream *stream = handle->data;
 
-	if (events == UV_CHANGE)
+	if (events & UV_RENAME == UV_RENAME) {
+		// File is being rotated
+		uv_fs_t close_req;
+		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
+		start_file_open(stream);
+	} else if (events & UV_CHANGE == UV_CHANGE) {
 		start_file_stat(stream);
-
-	else if (!file_exists(stream->file)) {
+	} else if (!file_exists(stream->file)) {
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
+		uv_fs_t close_req;
+		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
 		start_file_open(stream);
 	}
 }
