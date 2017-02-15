@@ -34,7 +34,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include "sds.h"
-#include "malloc.h"
+// #include "malloc.h"
 
 /* Create a new sds string with the content specified by the 'init' pointer
  * and 'initlen'.

@@ -29,7 +29,7 @@
 #include "tcp_client.h"
 #include "udp_client.h"
 
-#include "malloc.h"	/* total memory usage aware version of malloc/free */
+// #include "malloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
 #include "util.h"	/* Misc functions useful in many places */
 
@@ -105,8 +105,8 @@ void
 handle_message(char *id, char *body)
 {
 	char *message;
-	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
-				server.stream_facility, server.stream_priority,
+	message = sdscatprintf(sdsempty(), "<%d>%s %s %s %s\n", 
+				server.stream_facility + server.stream_priority,
 				server.time, server.stream_id, id, body);
 
 	switch (server.protocol) {
@@ -124,7 +124,7 @@ handle_message(char *id, char *body)
 }
 
 void
-calculate_time(uv_timer_t* handle, int status)
+calculate_time(uv_timer_t* handle)
 {
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
@@ -134,7 +134,7 @@ calculate_time(uv_timer_t* handle, int status)
 void
 start_timer_loop()
 {
-	calculate_time(NULL,1);
+	calculate_time(NULL);
 	uv_timer_init(server.loop,&server.time_timer);
 	uv_timer_start(&server.time_timer,calculate_time,500,500);
 }

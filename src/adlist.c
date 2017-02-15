@@ -31,7 +31,7 @@
 
 #include <stdlib.h>
 #include "adlist.h"
-#include "malloc.h"
+// #include "malloc.h"
 
 /* Create a new list. The created list can be freed with
  * AlFreeList(), but private value of every node need to be freed
