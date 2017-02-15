@@ -305,8 +305,6 @@ start_file_read(narc_stream *stream)
 		return;
 	}
 
-	init_buffer(stream->buffer);
-
 	uv_fs_t *req = malloc(sizeof(uv_fs_t));
 	if (uv_fs_read(server.loop, req, stream->fd, stream->buffer, NARC_STREAM_BUFFERS, stream->offset, handle_file_read) == 0) {
 		lock_stream(stream);
@@ -347,6 +345,8 @@ narc_stream
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
 	init_line(stream->current_line);
 	init_line(stream->previous_line);
+
+	init_buffer(stream->buffer);
 
 	return stream;
 }
