@@ -4,6 +4,7 @@ sudo: required
 dist: trusty
 
 before_install:
+  - sudo add-apt-repository ppa:wesmason/nodejs-backport -y
   - sudo apt-get -qq update
   - sudo apt-get install -y libuv1 libuv1-dev
   - mkdir m4
