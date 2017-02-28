@@ -54,6 +54,8 @@ typedef struct {
 	int	missed_count;				/*  */
 	int     message_header_size;
 	int64_t offset;
+	uv_fs_event_t *fs_events;
+	uv_timer_t *open_timer;
 } narc_stream;
 
 /*-----------------------------------------------------------------------------
@@ -70,7 +72,7 @@ void	start_rate_limit_timer(narc_stream *stream);
 
 /* api */
 narc_stream 	*new_stream(char *id, char *file);
-void		free_stream(narc_stream *stream);
+void		free_stream(void *ptr);
 void		init_stream(narc_stream *stream);
 
 #endif

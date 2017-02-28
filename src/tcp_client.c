@@ -222,6 +222,14 @@ init_tcp_client(void)
 }
 
 void
+clean_tcp_client(void)
+{
+	narc_tcp_client *client = (narc_tcp_client *)server.client;
+	server.client = NULL;
+	free(client);
+}
+
+void
 submit_tcp_message(char *message)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;

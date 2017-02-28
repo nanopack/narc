@@ -79,7 +79,9 @@ handle_udp_send(uv_udp_send_t* req, int status)
 		narc_log(NARC_WARNING, "Udp send error: %s", 
 			uv_err_name(status));
 	}
-	sdsfree(req->data);
+	uv_buf_t *buf = (uv_buf_t *)req->data;
+	sdsfree(buf->base);
+	free(buf);
 	free(req);
 }
 
@@ -153,20 +155,30 @@ init_udp_client(void)
 }
 
 void
+clean_udp_client(void)
+{
+	narc_udp_client *client = (narc_udp_client *)server.client;
+	server.client = NULL;
+	free(client);
+}
+
+void
 submit_udp_message(char *message)
 {
 	narc_udp_client *client = (narc_udp_client *)server.client;
-	if (client->state == NARC_UDP_BOUND) {
+	int len = strlen(message);
+	if (client->state == NARC_UDP_BOUND && len > 1) {
 
 		// we make the packet one character less so that we aren't sending the newline character
 		message[strlen(message)-1] = '\0';
 		
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
+		uv_buf_t *buf = malloc(sizeof(uv_buf_t));
 
-		uv_buf_t buf    = uv_buf_init(message, strlen(message));
-		req->data = (void *)message;
+		*buf    = uv_buf_init(message, strlen(message));
+		req->data = (void *)buf;
 		narc_udp_client *client = (narc_udp_client *)server.client;
-		uv_udp_send(req, &client->socket, &buf, 1, (struct sockaddr *)&client->send_addr, handle_udp_send);
+		uv_udp_send(req, &client->socket, buf, 1, (struct sockaddr *)&client->send_addr, handle_udp_send);
 	} else {
 		sdsfree(message);
 	}

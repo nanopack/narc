@@ -165,6 +165,17 @@ init_server_config(void)
 	server.rate_limit = NARC_DEFAULT_RATE_LIMIT;
 	server.rate_time = NARC_DEFAULT_RATE_TIME;
 	server.streams = listCreate();
+	listSetFreeMethod(server.streams, free_stream);
+}
+
+void 
+clean_server_config(void)
+{
+	free(server.pidfile);
+	free(server.host);
+	free(server.stream_id);
+	free(server.logfile);
+	free(server.syslog_ident);
 }
 
 void
@@ -194,6 +205,19 @@ init_server(void)
 		case NARC_PROTO_SYSLOG :
 			narc_log(NARC_WARNING, "syslog is not yet implemented");
 			exit(1);
+			break;
+	}
+}
+
+void
+clean_server(void)
+{
+	switch (server.protocol) {
+		case NARC_PROTO_UDP :
+			clean_udp_client();
+			break;
+		case NARC_PROTO_TCP :
+			clean_tcp_client();
 			break;
 	}
 }
@@ -269,6 +293,15 @@ stop(void)
 {
 	narc_log(NARC_NOTICE, "Stopping");
 	uv_stop(server.loop);
+	uv_loop_close(server.loop);
+}
+
+void signal_handler(uv_signal_t *handle, int signum) {
+	uv_signal_stop(handle);
+	listRelease(server.streams);
+	clean_server();
+	stop();
+	clean_server_config();
 }
 
 int
@@ -324,5 +357,11 @@ main(int argc, char **argv)
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
 	narc_log(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
 
-	return uv_run(server.loop, UV_RUN_DEFAULT);
+	uv_signal_t quit_signal;
+	uv_signal_init(server.loop, &quit_signal);
+	uv_signal_start(&quit_signal, signal_handler, SIGTERM);
+
+	uv_run(server.loop, UV_RUN_DEFAULT);
+	uv_loop_close(server.loop);
+	return 0;
 }

@@ -12,3 +12,5 @@ Makefile.in
 /install-sh
 /missing
 .deps
+.vagrant
+src/narcd

@@ -57,6 +57,15 @@ init_buffer(uv_buf_t buffer[])
 }
 
 void
+free_buffer(uv_buf_t buffer[])
+{
+	int i;
+	for (i = 0; i < NARC_STREAM_BUFFERS; i++) {
+		free(buffer[i].base);
+	}
+}
+
+void
 init_line(char *line)
 {
 	memset(line, '\0', NARC_MAX_MESSAGE_SIZE);
@@ -141,8 +150,11 @@ handle_file_open(uv_fs_t *req)
 void
 handle_file_open_timeout(uv_timer_t* timer)
 {
-	start_file_open((narc_stream *)timer->data);
-	free(timer);
+	narc_stream *stream = (narc_stream *)timer->data;
+	uv_timer_stop(stream->open_timer);
+	free(stream->open_timer);
+	stream->open_timer = NULL;
+	start_file_open(stream);
 }
 
 void 
@@ -155,6 +167,9 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 		// File is being rotated
 		uv_fs_t close_req;
 		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
+		uv_fs_event_stop(stream->fs_events);
+		free(stream->fs_events);
+		stream->fs_events = NULL;
 		start_file_open(stream);
 	} else if (events & UV_CHANGE == UV_CHANGE) {
 		start_file_stat(stream);
@@ -162,6 +177,9 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		uv_fs_t close_req;
 		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
+		uv_fs_event_stop(stream->fs_events);
+		free(stream->fs_events);
+		stream->fs_events = NULL;
 		start_file_open(stream);
 	}
 }
@@ -274,19 +292,19 @@ start_file_open(narc_stream *stream)
 void
 start_file_watcher(narc_stream *stream)
 {
-	uv_fs_event_t *event = malloc(sizeof(uv_fs_event_t));
-	uv_fs_event_init(server.loop, event);
-	if (uv_fs_event_start(event, handle_file_change, stream->file, 0) == 0)
-		event->data = (void *)stream;
+	stream->fs_events = malloc(sizeof(uv_fs_event_t));
+	uv_fs_event_init(server.loop, stream->fs_events);
+	if (uv_fs_event_start(stream->fs_events, handle_file_change, stream->file, 0) == 0)
+		stream->fs_events->data = (void *)stream;
 }
 
 void
 start_file_open_timer(narc_stream *stream)
 {
-	uv_timer_t *timer = malloc(sizeof(uv_timer_t));
-	if (uv_timer_init(server.loop, timer) == 0) {
-		if (uv_timer_start(timer, handle_file_open_timeout, server.open_retry_delay, 0) == 0)
-			timer->data = (void *)stream;
+	stream->open_timer = malloc(sizeof(uv_timer_t));
+	if (uv_timer_init(server.loop, stream->open_timer) == 0) {
+		if (uv_timer_start(stream->open_timer, handle_file_open_timeout, server.open_retry_delay, 0) == 0)
+			stream->open_timer->data = (void *)stream;
 	}
 }
 
@@ -340,6 +358,8 @@ narc_stream
 	stream->repeat_count        = 0;
 	stream->message_header_size = strlen(id) + strlen(server.stream_id) + 24;
 	stream->offset              = 0;
+	stream->fs_events			= NULL;
+	stream->open_timer			= NULL;
 
 	stream->current_line  = &stream->line[0];
 	stream->previous_line = &stream->line[NARC_MAX_LOGMSG_LEN + 1];
@@ -352,10 +372,28 @@ narc_stream
 }
 
 void
-free_stream(narc_stream *stream)
+stop_stream(narc_stream *stream)
 {
-	free(stream->id);
-	free(stream->file);
+	if (stream->fs_events != NULL) {
+		uv_fs_event_stop(stream->fs_events);
+		free(stream->fs_events);
+		stream->fs_events = NULL;
+	}
+	if (stream->open_timer != NULL) {
+		uv_timer_stop(stream->open_timer);
+		free(stream->open_timer);
+		stream->open_timer = NULL;
+	}
+}
+
+void
+free_stream(void *ptr)
+{
+	narc_stream *stream = (narc_stream *)ptr;
+	stop_stream(stream);
+	free_buffer(stream->buffer);
+	sdsfree(stream->id);
+	sdsfree(stream->file);
 	free(stream);
 }
 

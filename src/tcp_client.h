@@ -58,6 +58,7 @@ void	start_tcp_read(uv_stream_t *stream);
 
 /* api */
 void	init_tcp_client(void);
+void	clean_tcp_client(void);
 void 	submit_tcp_message(char *message);
 void	start_tcp_connect_timer(void);
 
