@@ -151,8 +151,9 @@ void
 handle_file_open_timeout(uv_timer_t* timer)
 {
 	narc_stream *stream = (narc_stream *)timer->data;
-	uv_timer_stop(stream->open_timer);
-	free(stream->open_timer);
+	// uv_timer_stop(stream->open_timer);
+	uv_close((uv_handle_t *)stream->open_timer, free);
+	// free(stream->open_timer);
 	stream->open_timer = NULL;
 	start_file_open(stream);
 }
@@ -167,8 +168,9 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 		// File is being rotated
 		uv_fs_t close_req;
 		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
-		uv_fs_event_stop(stream->fs_events);
-		free(stream->fs_events);
+		// uv_fs_event_stop(stream->fs_events);
+		uv_close((uv_handle_t *)stream->fs_events, free);
+		// free(stream->fs_events);
 		stream->fs_events = NULL;
 		start_file_open(stream);
 	} else if (events & UV_CHANGE == UV_CHANGE) {
@@ -177,8 +179,9 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
 		uv_fs_t close_req;
 		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
-		uv_fs_event_stop(stream->fs_events);
-		free(stream->fs_events);
+		// uv_fs_event_stop(stream->fs_events);
+		uv_close((uv_handle_t *)stream->fs_events, free);
+		// free(stream->fs_events);
 		stream->fs_events = NULL;
 		start_file_open(stream);
 	}
@@ -273,7 +276,9 @@ handle_rate_limit_timer(uv_timer_t* timer)
 {
 	narc_stream *stream = timer->data;
 	stream->rate_count--;
-	free(timer);
+	// uv_timer_stop(timer);
+	uv_close((uv_handle_t *)timer, free);
+	// free(timer);
 }
 
 /*================================= Watchers =================================== */
@@ -375,13 +380,15 @@ void
 stop_stream(narc_stream *stream)
 {
 	if (stream->fs_events != NULL) {
-		uv_fs_event_stop(stream->fs_events);
-		free(stream->fs_events);
+		// uv_fs_event_stop(stream->fs_events);
+		uv_close((uv_handle_t *)stream->fs_events, free);
+		// free(stream->fs_events);
 		stream->fs_events = NULL;
 	}
 	if (stream->open_timer != NULL) {
-		uv_timer_stop(stream->open_timer);
-		free(stream->open_timer);
+		// uv_timer_stop(stream->open_timer);
+		uv_close((uv_handle_t *)stream->open_timer, free);
+		// free(stream->open_timer);
 		stream->open_timer = NULL;
 	}
 }
@@ -390,7 +397,7 @@ void
 free_stream(void *ptr)
 {
 	narc_stream *stream = (narc_stream *)ptr;
-	stop_stream(stream);
+	// stop_stream(stream);
 	free_buffer(stream->buffer);
 	sdsfree(stream->id);
 	sdsfree(stream->file);

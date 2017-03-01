@@ -176,6 +176,15 @@ clean_server_config(void)
 	free(server.stream_id);
 	free(server.logfile);
 	free(server.syslog_ident);
+	switch (server.protocol) {
+	case NARC_PROTO_UDP :
+		free((narc_udp_client *)server.client);
+		break;
+	case NARC_PROTO_TCP :
+		free((narc_tcp_client *)server.client);
+		break;
+	}
+
 }
 
 void
@@ -289,19 +298,32 @@ narc_set_proc_title(char *title)
 }
 
 void
+close_handles(uv_handle_t* handle, void* arg) {
+	if (!(handle->flags & (0x01 | 0x02))){
+		if (handle->type == UV_SIGNAL || handle == &server.time_timer) {
+			uv_close(handle, NULL);
+		} else {
+			uv_close(handle, free);
+		}
+	}
+}
+
+void
 stop(void)
 {
 	narc_log(NARC_NOTICE, "Stopping");
-	uv_stop(server.loop);
-	uv_loop_close(server.loop);
+	// uv_stop(server.loop);
 }
 
 void signal_handler(uv_signal_t *handle, int signum) {
 	uv_signal_stop(handle);
+	uv_close((uv_handle_t*)handle, NULL);
+	uv_signal_stop(&server.loop->child_watcher);
+	uv_close((uv_handle_t*)&server.loop->child_watcher, NULL);
 	listRelease(server.streams);
 	clean_server();
 	stop();
-	clean_server_config();
+	uv_walk(server.loop, close_handles, NULL);
 }
 
 int
@@ -362,6 +384,7 @@ main(int argc, char **argv)
 	uv_signal_start(&quit_signal, signal_handler, SIGTERM);
 
 	uv_run(server.loop, UV_RUN_DEFAULT);
-	uv_loop_close(server.loop);
-	return 0;
+	clean_server_config();
+	// listRelease(server.streams);
+	return uv_loop_close(server.loop);
 }

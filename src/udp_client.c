@@ -41,7 +41,7 @@ narc_udp_client
 *new_udp_client(void)
 {
 	narc_udp_client *client = (narc_udp_client *)malloc(sizeof(narc_udp_client));
-
+	memset(client, 0, sizeof(narc_udp_client));
 	return client;
 }
 
@@ -80,6 +80,7 @@ handle_udp_send(uv_udp_send_t* req, int status)
 			uv_err_name(status));
 	}
 	uv_buf_t *buf = (uv_buf_t *)req->data;
+	// narc_log(NARC_WARNING, "message again: %s", buf->base);
 	sdsfree(buf->base);
 	free(buf);
 	free(req);
@@ -158,26 +159,33 @@ void
 clean_udp_client(void)
 {
 	narc_udp_client *client = (narc_udp_client *)server.client;
-	server.client = NULL;
-	free(client);
+	// uv_udp_recv_stop((uv_udp_t *)&client->socket);
+	uv_close((uv_handle_t *)&client->socket, NULL);
+	// server.client = NULL;
 }
 
 void
 submit_udp_message(char *message)
 {
+	if (server.client == NULL) {
+		sdsfree(message);
+		return;
+	}
 	narc_udp_client *client = (narc_udp_client *)server.client;
 	int len = strlen(message);
-	if (client->state == NARC_UDP_BOUND && len > 1) {
+	if (client->state == NARC_UDP_BOUND && len > 2) {
 
 		// we make the packet one character less so that we aren't sending the newline character
 		message[strlen(message)-1] = '\0';
-		
+		// narc_log(NARC_WARNING, "sockaddr: %d %d %d %p", client->send_addr.sin_family, client->send_addr.sin_port, client->send_addr.sin_addr.s_addr, &client->send_addr);
 		uv_udp_send_t *req = (uv_udp_send_t *)malloc(sizeof(uv_udp_send_t));
+		memset(req, 0, sizeof(uv_udp_send_t));
 		uv_buf_t *buf = malloc(sizeof(uv_buf_t));
+		memset(buf, 0, sizeof(uv_buf_t));
 
 		*buf    = uv_buf_init(message, strlen(message));
 		req->data = (void *)buf;
-		narc_udp_client *client = (narc_udp_client *)server.client;
+		// narc_udp_client *client = (narc_udp_client *)server.client;
 		uv_udp_send(req, &client->socket, buf, 1, (struct sockaddr *)&client->send_addr, handle_udp_send);
 	} else {
 		sdsfree(message);
