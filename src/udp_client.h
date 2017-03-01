@@ -53,6 +53,7 @@ typedef struct {
 
 /* api */
 void	init_udp_client(void);
+void	clean_udp_client(void);
 void 	submit_udp_message(char *message);
 
 #endif

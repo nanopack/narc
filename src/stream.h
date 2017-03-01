@@ -26,10 +26,12 @@
 #define NARC_STREAM 
 
 #include "narc.h"
+#include <uv.h>
 
 /* Stream locking */
 #define NARC_STREAM_LOCKED	1
 #define NARC_STREAM_UNLOCKED	2
+#define NARC_STREAM_BUFFERS	1
 
 /*-----------------------------------------------------------------------------
  * Data types
@@ -40,7 +42,7 @@ typedef struct {
 	char 	*file;					/* absolute path to the file */
 	int 	fd;					/* file descriptor */
 	off_t 	size;					/* last known file size in bytes */
-	char 	buffer[NARC_MAX_BUFF_SIZE];		/* read buffer (file content) */
+	uv_buf_t buffer[NARC_STREAM_BUFFERS];		/* read buffer (file content) */
 	char 	line[(NARC_MAX_LOGMSG_LEN + 1) * 2];	/* the current and previous lines buffer */
 	char	*current_line;				/* current line */
 	char	*previous_line;				/* previous line */
@@ -50,6 +52,10 @@ typedef struct {
 	int 	attempts;				/* open attempts */
 	int	rate_count;				/*  */
 	int	missed_count;				/*  */
+	int     message_header_size;
+	int64_t offset;
+	uv_fs_event_t *fs_events;
+	uv_timer_t *open_timer;
 } narc_stream;
 
 /*-----------------------------------------------------------------------------
@@ -66,7 +72,7 @@ void	start_rate_limit_timer(narc_stream *stream);
 
 /* api */
 narc_stream 	*new_stream(char *id, char *file);
-void		free_stream(narc_stream *stream);
+void		free_stream(void *ptr);
 void		init_stream(narc_stream *stream);
 
 #endif

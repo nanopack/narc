@@ -161,13 +161,13 @@ char		*narc_git_sha1(void);
 char		*narc_git_dirty(void);
 uint64_t	narc_build_id(void);
 
-/* Deprecated */
-#if defined(__GNUC__)
-void	*calloc(size_t count, size_t size) __attribute__ ((deprecated));
-void	free(void *ptr) __attribute__ ((deprecated));
-void	*malloc(size_t size) __attribute__ ((deprecated));
-void	*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
-#endif
+// /* Deprecated */
+// #if defined(__GNUC__)
+// void	*calloc(size_t count, size_t size) __attribute__ ((deprecated));
+// void	free(void *ptr) __attribute__ ((deprecated));
+// void	*malloc(size_t size) __attribute__ ((deprecated));
+// void	*realloc(void *ptr, size_t size) __attribute__ ((deprecated));
+// #endif
 
 /* Debugging stuff */
 void	_narcAssert(char *estr, char *file, int line);

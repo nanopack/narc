@@ -29,7 +29,7 @@
 #include "tcp_client.h"
 #include "udp_client.h"
 
-#include "malloc.h"	/* total memory usage aware version of malloc/free */
+// #include "malloc.h"	/* total memory usage aware version of malloc/free */
 #include "sds.h"	/* dynamic safe strings */
 #include "util.h"	/* Misc functions useful in many places */
 
@@ -105,8 +105,8 @@ void
 handle_message(char *id, char *body)
 {
 	char *message;
-	message = sdscatprintf(sdsempty(), "<%d%d>%s %s %s %s\n", 
-				server.stream_facility, server.stream_priority,
+	message = sdscatprintf(sdsempty(), "<%d>%s %s %s %s\n", 
+				server.stream_facility + server.stream_priority,
 				server.time, server.stream_id, id, body);
 
 	switch (server.protocol) {
@@ -124,7 +124,7 @@ handle_message(char *id, char *body)
 }
 
 void
-calculate_time(uv_timer_t* handle, int status)
+calculate_time(uv_timer_t* handle)
 {
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
@@ -134,7 +134,7 @@ calculate_time(uv_timer_t* handle, int status)
 void
 start_timer_loop()
 {
-	calculate_time(NULL,1);
+	calculate_time(NULL);
 	uv_timer_init(server.loop,&server.time_timer);
 	uv_timer_start(&server.time_timer,calculate_time,500,500);
 }
@@ -165,6 +165,26 @@ init_server_config(void)
 	server.rate_limit = NARC_DEFAULT_RATE_LIMIT;
 	server.rate_time = NARC_DEFAULT_RATE_TIME;
 	server.streams = listCreate();
+	listSetFreeMethod(server.streams, free_stream);
+}
+
+void 
+clean_server_config(void)
+{
+	free(server.pidfile);
+	free(server.host);
+	free(server.stream_id);
+	free(server.logfile);
+	free(server.syslog_ident);
+	switch (server.protocol) {
+	case NARC_PROTO_UDP :
+		free((narc_udp_client *)server.client);
+		break;
+	case NARC_PROTO_TCP :
+		free((narc_tcp_client *)server.client);
+		break;
+	}
+
 }
 
 void
@@ -194,6 +214,19 @@ init_server(void)
 		case NARC_PROTO_SYSLOG :
 			narc_log(NARC_WARNING, "syslog is not yet implemented");
 			exit(1);
+			break;
+	}
+}
+
+void
+clean_server(void)
+{
+	switch (server.protocol) {
+		case NARC_PROTO_UDP :
+			clean_udp_client();
+			break;
+		case NARC_PROTO_TCP :
+			clean_tcp_client();
 			break;
 	}
 }
@@ -265,10 +298,32 @@ narc_set_proc_title(char *title)
 }
 
 void
+close_handles(uv_handle_t* handle, void* arg) {
+	if (!(handle->flags & (0x01 | 0x02))){
+		if (handle->type == UV_SIGNAL || handle == &server.time_timer) {
+			uv_close(handle, NULL);
+		} else {
+			uv_close(handle, (uv_close_cb)free);
+		}
+	}
+}
+
+void
 stop(void)
 {
 	narc_log(NARC_NOTICE, "Stopping");
-	uv_stop(server.loop);
+	// uv_stop(server.loop);
+}
+
+void signal_handler(uv_signal_t *handle, int signum) {
+	uv_signal_stop(handle);
+	uv_close((uv_handle_t*)handle, NULL);
+	uv_signal_stop(&server.loop->child_watcher);
+	uv_close((uv_handle_t*)&server.loop->child_watcher, NULL);
+	listRelease(server.streams);
+	clean_server();
+	stop();
+	uv_walk(server.loop, close_handles, NULL);
 }
 
 int
@@ -324,5 +379,12 @@ main(int argc, char **argv)
 	narc_log(NARC_WARNING, "Narc started, version " NARC_VERSION);
 	narc_log(NARC_WARNING, "Waiting for events on %d files", (int)listLength(server.streams));
 
-	return uv_run(server.loop, UV_RUN_DEFAULT);
+	uv_signal_t quit_signal;
+	uv_signal_init(server.loop, &quit_signal);
+	uv_signal_start(&quit_signal, signal_handler, SIGTERM);
+
+	uv_run(server.loop, UV_RUN_DEFAULT);
+	clean_server_config();
+	// listRelease(server.streams);
+	return uv_loop_close(server.loop);
 }
