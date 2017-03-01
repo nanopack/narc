@@ -152,7 +152,7 @@ handle_file_open_timeout(uv_timer_t* timer)
 {
 	narc_stream *stream = (narc_stream *)timer->data;
 	// uv_timer_stop(stream->open_timer);
-	uv_close((uv_handle_t *)stream->open_timer, free);
+	uv_close((uv_handle_t *)stream->open_timer, (uv_close_cb)free);
 	// free(stream->open_timer);
 	stream->open_timer = NULL;
 	start_file_open(stream);
@@ -164,26 +164,29 @@ handle_file_change(uv_fs_event_t *handle, const char *filename, int events, int 
 
 	narc_stream *stream = handle->data;
 
-	if (events & UV_RENAME == UV_RENAME) {
+	if ((events & UV_RENAME) == UV_RENAME) {
+		narc_log(NARC_WARNING, "File renamed");
 		// File is being rotated
 		uv_fs_t close_req;
 		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
 		// uv_fs_event_stop(stream->fs_events);
-		uv_close((uv_handle_t *)stream->fs_events, free);
+		uv_close((uv_handle_t *)stream->fs_events, (uv_close_cb)free);
 		// free(stream->fs_events);
 		stream->fs_events = NULL;
 		start_file_open(stream);
-	} else if (events & UV_CHANGE == UV_CHANGE) {
-		start_file_stat(stream);
-	} else if (!file_exists(stream->file)) {
-		narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
-		uv_fs_t close_req;
-		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
-		// uv_fs_event_stop(stream->fs_events);
-		uv_close((uv_handle_t *)stream->fs_events, free);
-		// free(stream->fs_events);
-		stream->fs_events = NULL;
-		start_file_open(stream);
+	} else if ((events & UV_CHANGE) == UV_CHANGE) {
+		if (file_exists(stream->file)) {
+			start_file_stat(stream);
+		} else {
+			narc_log(NARC_WARNING, "File deleted: %s, attempting to re-open", stream->file);
+			uv_fs_t close_req;
+			uv_fs_close(server.loop, &close_req, stream->fd, NULL);
+			// uv_fs_event_stop(stream->fs_events);
+			uv_close((uv_handle_t *)stream->fs_events, (uv_close_cb)free);
+			// free(stream->fs_events);
+			stream->fs_events = NULL;
+			start_file_open(stream);
+		}
 	}
 }
 
@@ -191,21 +194,32 @@ void
 handle_file_stat(uv_fs_t* req)
 {
 	narc_stream *stream = req->data;
-	uv_stat_t *stat  = req->ptr;
+	if (req->result >= 0) {
+		uv_stat_t *stat  = req->ptr;
 
-	// file is initially opened
-	if (stream->size < 0){
-		stream->offset = stat->st_size;
+		// file is initially opened
+		if (stream->size < 0){
+			stream->offset = stat->st_size;
+		}
+
+		// file has been truncated
+		if ((long int)stat->st_size < (long int)stream->size){
+			stream->offset = 0;
+		}
+
+		stream->size = stat->st_size;
+
+		start_file_read(stream);
+	} else {
+		// there was an error, try things again?
+		uv_fs_t close_req;
+		uv_fs_close(server.loop, &close_req, stream->fd, NULL);
+		// uv_fs_event_stop(stream->fs_events);
+		uv_close((uv_handle_t *)stream->fs_events, (uv_close_cb)free);
+		// free(stream->fs_events);
+		stream->fs_events = NULL;
+		start_file_open(stream);
 	}
-
-	// file has been truncated
-	if ((long int)stat->st_size < (long int)stream->size){
-		stream->offset = 0;
-	}
-
-	stream->size = stat->st_size;
-
-	start_file_read(stream);
 
 	uv_fs_req_cleanup(req);
 	free(req);
@@ -277,7 +291,7 @@ handle_rate_limit_timer(uv_timer_t* timer)
 	narc_stream *stream = timer->data;
 	stream->rate_count--;
 	// uv_timer_stop(timer);
-	uv_close((uv_handle_t *)timer, free);
+	uv_close((uv_handle_t *)timer, (uv_close_cb)free);
 	// free(timer);
 }
 
@@ -381,13 +395,13 @@ stop_stream(narc_stream *stream)
 {
 	if (stream->fs_events != NULL) {
 		// uv_fs_event_stop(stream->fs_events);
-		uv_close((uv_handle_t *)stream->fs_events, free);
+		uv_close((uv_handle_t *)stream->fs_events, (uv_close_cb)free);
 		// free(stream->fs_events);
 		stream->fs_events = NULL;
 	}
 	if (stream->open_timer != NULL) {
 		// uv_timer_stop(stream->open_timer);
-		uv_close((uv_handle_t *)stream->open_timer, free);
+		uv_close((uv_handle_t *)stream->open_timer, (uv_close_cb)free);
 		// free(stream->open_timer);
 		stream->open_timer = NULL;
 	}

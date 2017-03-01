@@ -97,7 +97,6 @@ handle_tcp_connect(uv_connect_t* connection, int status)
 
 		start_tcp_read(client->stream);
 	}
-
 	free(connection);
 }
 
@@ -148,7 +147,7 @@ void
 handle_tcp_connect_timeout(uv_timer_t* timer)
 {
 	start_tcp_resolve();
-	free(timer);
+	uv_close((uv_handle_t *)timer, (uv_close_cb)free);
 }
 
 void
@@ -225,8 +224,12 @@ void
 clean_tcp_client(void)
 {
 	narc_tcp_client *client = (narc_tcp_client *)server.client;
-	server.client = NULL;
-	free(client);
+	if (client->socket != NULL) {
+		uv_close((uv_handle_t *)client->socket, (uv_close_cb)free);
+		client->socket = NULL;
+	}
+	// server.client = NULL;
+	// free(client);
 }
 
 void

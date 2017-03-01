@@ -303,7 +303,7 @@ close_handles(uv_handle_t* handle, void* arg) {
 		if (handle->type == UV_SIGNAL || handle == &server.time_timer) {
 			uv_close(handle, NULL);
 		} else {
-			uv_close(handle, free);
+			uv_close(handle, (uv_close_cb)free);
 		}
 	}
 }
