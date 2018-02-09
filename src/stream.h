@@ -54,6 +54,7 @@ typedef struct {
 	int	missed_count;				/*  */
 	int     message_header_size;
 	int64_t offset;
+	int		truncate;
 	uv_fs_event_t *fs_events;
 	uv_timer_t *open_timer;
 } narc_stream;

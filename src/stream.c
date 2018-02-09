@@ -33,6 +33,9 @@
 #include <stdio.h>	/* standard buffered input/output */
 #include <stdlib.h>	/* standard library definitions */
 #include <unistd.h>	/* standard symbolic constants and types */
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
 #include <uv.h>		/* Event driven programming library */
 #include <string.h>	/* string operations */
 
@@ -207,6 +210,11 @@ handle_file_stat(uv_fs_t* req)
 			stream->offset = 0;
 		}
 
+		// does the file need to be truncated?
+		if ((long int)stat->st_size > (long int)server.truncate_limit){
+			stream->truncate = 1;
+		}
+
 		stream->size = stat->st_size;
 
 		start_file_read(stream);
@@ -274,6 +282,13 @@ handle_file_read(uv_fs_t *req)
 				stream->index += 1;
 			}
 		}
+	}
+
+	if (stream->truncate == 1) {
+		if (truncate(stream->file, 0) == -1) {
+			narc_log(NARC_WARNING, "Truncate error (%s): %s", stream->file, strerror(errno));
+		}
+		stream->truncate = 0;
 	}
 
 	unlock_stream(stream);
