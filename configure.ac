@@ -2,7 +2,7 @@
 
 AC_PREREQ(2.61)
 
-AC_INIT([narcd], [0.2.1])
+AC_INIT([narcd], [0.2.2])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/narc.c])
 

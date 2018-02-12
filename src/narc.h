@@ -68,6 +68,7 @@
 #define NARC_DEFAULT_CONNECT_DELAY	3000
 #define NARC_DEFAULT_RATE_LIMIT		100
 #define NARC_DEFAULT_RATE_TIME		10
+#define NARC_DEFAULT_TRUNCATE_LIMIT	1024*1024*32 /* Default truncate files when they get to 32MB */
 
 /* Log levels */
 #define NARC_DEBUG		0
@@ -125,6 +126,7 @@ struct narc_server {
 	int 		stream_priority;		/* Syslog stream priority */
 	int			rate_limit;				/* log rate limit */
 	int			rate_time;				/* log rate time */
+	int			truncate_limit;			/* size limit for truncating */
 
 	/* Time of day */
 	uv_timer_t 	time_timer;				/* runs ever hald second to update the current time */

@@ -164,6 +164,7 @@ init_server_config(void)
 	server.connect_retry_delay = NARC_DEFAULT_CONNECT_DELAY;
 	server.rate_limit = NARC_DEFAULT_RATE_LIMIT;
 	server.rate_time = NARC_DEFAULT_RATE_TIME;
+	server.truncate_limit = NARC_DEFAULT_TRUNCATE_LIMIT;
 	server.streams = listCreate();
 	listSetFreeMethod(server.streams, free_stream);
 }
