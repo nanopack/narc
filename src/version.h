@@ -1,1 +1,1 @@
-#define NARC_VERSION "0.0.1"
+#define NARC_VERSION "0.2.2"
